@@ -10,7 +10,7 @@ import numpy as np
 import utils
 from importlib import reload
 reload(utils)
-import csv
+import pandas as pd
 import multiprocessing
 from multiprocessing import Manager, Process
 from pathlib import Path
@@ -50,7 +50,6 @@ class ColorCorrector:
 
         exg = []
         exg_n = []
-        base_names = []
 
         for job in iter(work_queue.get, 'STOP'):
 
@@ -114,13 +113,17 @@ class ColorCorrector:
                         exgreen_n = mean_exg_top33
                         exg_n.append(mean_exg_top33)
 
-                with open("Z:/Public/Jonas/003_ESWW/ColorTrends/train_img_selection/exg_iter.csv", 'wt') as f:
-                    writer = csv.writer(f)
-                    writer.writerow(('img_id', 'exg', 'exg_n'))
-                    row = (base_name, exgreen, exgreen_n)
-                    writer.writerow(row)
+                # with open("Z:/Public/Jonas/003_ESWW/ColorTrends/train_img_selection/exg_iter.csv", 'wt') as f:
+                #     writer = csv.writer(f)
+                #     writer.writerow(('img_id', 'exg', 'exg_n'))
+                #     row = (base_name, exgreen, exgreen_n)
+                #     writer.writerow(row)
 
-                base_names.append(base_name)
+                df = pd.DataFrame({'img_id': base_name, 'exg': exgreen, 'exg_n': exgreen_n}, index=[0])
+                df = pd.DataFrame(df)
+                df.to_csv(f'Z:/Public/Jonas/003_ESWW/ColorTrends/train_img_selection/exgr_iter/{image_name}_exgr.csv')
+
+                # base_names.append(base_name)
 
                 result.put(img_name)
 

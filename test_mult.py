@@ -9,5 +9,6 @@ def run():
                                      output_dir=output_dir)
     color_corrector.run()
 
+
 if __name__ == '__main__':
     run()

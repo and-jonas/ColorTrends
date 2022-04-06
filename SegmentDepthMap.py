@@ -33,14 +33,15 @@ img_stack = glob.glob('JPG/*.JPG')
 
 edge_img = np.zeros(img.shape[:2], dtype=np.uint8)
 
-for image in img_stack[:16]:
+for i, image in enumerate(img_stack[:16]):
     print(image)
     img = imageio.imread(image)
     img_blur = cv2.medianBlur(img, 5)
     edges = cv2.Canny(image=img, threshold1=100, threshold2=210)  # Canny Edge Detection
-    edges = edges/255
-    # plt.imshow(edge_img)
+    imageio.imwrite(path / "edges" / str(str(i + 1) + ".jpg"), edges)
     edge_img = edge_img + edges
+
+plt.imshow(edge_img)
 
 # ======================================================================================================================
 

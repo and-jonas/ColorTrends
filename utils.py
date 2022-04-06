@@ -1,5 +1,83 @@
 import numpy as np
 import cv2
+import random
+from plantcv import plantcv as pcv
+
+
+def random_patch(img, size, frame, random_patch=True):
+    """
+    Randomly select a patch from a defined central region of the image
+    :param img: the RGB image to select the patch from
+    :param size: the size of the patch in pixels
+    :param frame: the size of the edge to be excluded; a tuple of four integers
+    :return: the selected patch
+    """
+    # rotate image if necessary
+    if img.shape[0] > img.shape[1]:
+        print('rotating 90')
+        img = np.rot90(img)
+
+    # detect color checker, and rotate by 180 degrees if necessary
+    try:
+        dataframe1, start, space = pcv.transform.find_color_card(rgb_img=img, background='light')
+    except RuntimeError:
+        dataframe1, start, space = pcv.transform.find_color_card(rgb_img=img, background='dark')
+
+    if start[1] < 2000:
+        print('rotating 180')
+        img = np.rot90(np.rot90(img))
+
+    # remove edges
+    left, upper, right, lower = frame
+    img_central = img[upper:img.shape[0]-lower, left:img.shape[1]-right, :]
+
+    # randomly select a patch
+    if random_patch:
+        y1 = random.randrange(0, img_central.shape[0]-size)
+        x1 = random.randrange(0, img_central.shape[1]-size)
+        y2 = y1 + size
+        x2 = x1 + size
+        img_patch = img_central[y1:y2, x1:x2, :]
+        coords = (x1, x2, y1, y2)
+
+    else:
+        img_patch = img_central
+        coords = None
+
+    return img_patch, coords
+
+
+def random_soil_patch(img, size):
+
+    # randomly select a patch
+    y1 = random.randrange(0, img.shape[0]-size[0])
+    x1 = random.randrange(0, img.shape[1]-size[1])
+    y2 = y1 + size[0]
+    x2 = x1 + size[1]
+
+    img_patch = img[y1:y2, x1:x2, :]
+    coords = (x1, x2, y1, y2)
+
+    return img_patch, coords
+
+
+def sample_patches(image, mask, size):
+
+    img_size = image.shape[0]
+
+    # image
+    patch1 = image[:size, :size]
+    patch2 = image[:size, img_size-size:img_size]
+    patch3 = image[img_size-size:img_size, :size]
+    patch4 = image[img_size-size:img_size, img_size-size:img_size]
+
+    # mask
+    mask1 = mask[:size, :size]
+    mask2 = mask[:size, img_size-size:img_size]
+    mask3 = mask[img_size-size:img_size, :size]
+    mask4 = mask[img_size-size:img_size, img_size-size:img_size]
+
+    return (patch1, patch2, patch3, patch4), (mask1, mask2, mask3, mask4)
 
 
 def filter_objects_size(mask, size_th, dir):
