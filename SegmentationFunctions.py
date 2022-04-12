@@ -115,6 +115,33 @@ def iterate_patches(image, mask):
     return df
 
 
+def iterate_patches_dirs(dir_positives, dir_negatives):
+
+    # POSITIVE patches
+    all_files_pos = glob.glob(f'{dir_positives}/*.png')
+    # iterate over patches
+    for i, file in enumerate(all_files_pos):
+        print(f'{i}/{len(all_files_pos)}')
+        patch = imageio.imread(file)
+        X, X_names = extract_training_data(patch)
+        df = pd.DataFrame(X, columns=X_names)
+        df['response'] = 'pos'
+        f_name = os.path.splitext(os.path.basename(file))[0]
+        df.to_csv(f'{dir_positives}/{f_name}_data.csv',  index=False)
+
+    # NEGATIVE patches
+    all_files_neg = glob.glob(f'{dir_negatives}/*.png')
+    # iterate over patches
+    for i, file in enumerate(all_files_neg):
+        print(f'{i}/{len(all_files_neg)}')
+        patch = imageio.imread(file)
+        X, X_names = extract_training_data(patch)
+        df = pd.DataFrame(X, columns=X_names)
+        df['response'] = 'neg'
+        f_name = os.path.splitext(os.path.basename(file))[0]
+        df.to_csv(f'{dir_negatives}/{f_name}_data.csv',  index=False)
+
+
 def segment_image(image, dir_model):
     """
     Segments an image using a pre-trained pixel classification model.

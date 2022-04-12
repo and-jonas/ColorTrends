@@ -160,7 +160,7 @@ class TrainingPatchSelector:
                 if roi[4] == "negative":
                     sink_dir = self.dir_negatives
                     # add patch to image for control purposes
-                    check_img = cv2.rectangle(m, (roi[0], roi[1]), (roi[2], roi[3]), (0, 255, 0), 4)
+                    check_img = cv2.rectangle(check_img, (roi[0], roi[1]), (roi[2], roi[3]), (0, 255, 0), 4)
                     # add lesion index
                     check_img = cv2.putText(img=check_img, text=label, org=(roi[2], roi[3]),
                                             fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=3,

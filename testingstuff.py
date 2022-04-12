@@ -36,25 +36,27 @@ import os
 # data_folder = os.path.abspath(os.path.join(os.path.curdir, '..', 'data', 'epfl_corridor', '20141008_141749_00'))
 # data_folder = os.path.abspath(os.path.join(os.path.curdir, '..', 'data', 'epfl_lab', '20140804_160621_00'))
 # data_folder = os.path.abspath(os.path.join(os.path.curdir, '..', '2022-01-14', 'test', 'data', 'depth_superres'))
-data_folder = "C:/Users/anjonas/Pictures/2022_01_12/F2.8_50mm_2m/2022_01_14/test/data/depth_superres"
-data_folder = "C:/Users/anjonas/Pictures/2022_01_12/F2.8_50mm_2m/2022_01_14/test"
+# data_folder = "C:/Users/anjonas/Pictures/2022_01_12/F2.8_50mm_2m/2022_01_14/test/data/depth_superres"
+# data_folder = "C:/Users/anjonas/Pictures/2022_01_12/F2.8_50mm_2m/2022_01_14/test"
+data_folder = "Z:/Public/Jonas/003_ESWW/ColorTrends/testing_segmentation_bluebackground"
 # print (data_folder)
 
 # The RGB image that whose edges we will respect
 # reference = imread(os.path.join(data_folder, 'rgb000120.png'))
-reference = imread(os.path.join(data_folder, 'reference.tif'))
-reference = (reference/256).astype('uint8')
-reference = cv2.medianBlur(reference, 5)
+reference = imread(os.path.join(data_folder, 'test_images/IMG_0099.JPG'))
+# reference = (reference/256).astype('uint8')
+# reference = cv2.medianBlur(reference, 5)
 
 # The 1D image whose values we would like to filter
 # target = imread(os.path.join(data_folder, 'depth000120.png'))
 # target = imread(os.path.join(data_folder, 'target.png'))
-target = imread(os.path.join(data_folder, 'target_A_3_1.tif'))
+target = imread(os.path.join(data_folder, 'Output/Masks/IMG_0099.JPG'))
 # A confidence image, representing how much we trust the values in "target".
 # Pixels with zero confidence are ignored.
 # Confidence can be set to all (2^16-1)'s to effectively disable it.
-confidence_0 = np.full((reference.shape[0], reference.shape[1]), pow(2, 16)-1)
+# confidence_0 = np.full((reference.shape[0], reference.shape[1]), pow(2, 16)-1)
 # confidence_0 = imread(os.path.join(data_folder, 'confidence.png'))
+confidence_0 = imread(os.path.join(data_folder, 'Output/Masks/IMG_0099_proba.JPG'))*256
 
 # confidence = confidence_0[:target.shape[0],:target.shape[1],:]
 # confidence = transform.resize(confidence_0, (target.shape[0], target.shape[1]))
@@ -247,6 +249,11 @@ class BilateralSolver(object):
         M = diags(1 / A_diag, 0)
         print ("1/A_diag.shape:",(1/A_diag).shape)
         print ("M.shape:",M.shape)
+
+        # JA inserted
+        w_splat[np.where(w_splat == 0)] = 0.00000001
+        # end inserted
+
         # Flat initialization
         y0 = self.grid.splat(xw) / w_splat
         yhat = np.empty_like(y0)
@@ -290,6 +297,11 @@ c = confidence.reshape(-1, 1).astype(np.double) / (pow(2,16)-1)
 
 tc_filt = grid.filter(t * c)
 c_filt = grid.filter(c)
+
+# JA inserted
+c_filt[np.where(c_filt == 0)] = 0.00000001
+# End inserted
+
 output_filter = (tc_filt / c_filt).reshape(im_shape)
 
 # %%time

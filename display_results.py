@@ -9,7 +9,7 @@ import glob
 import os
 from pathlib import Path
 
-dir = "C:/Users/anjonas/PycharmProjects/DL/data/inference"
+dir = "C:/Users/anjonas/PycharmProjects/DL/data/inference_test"
 images = glob.glob(f'{dir}/*.png')
 
 for image in images:
@@ -38,5 +38,5 @@ for image in images:
     img = img.convert("RGBA")
     img.paste(mask, (0, 0), mask)
     final_patch = np.asarray(img)
-    # plt.imshow(final_patch)
+    plt.imshow(final_patch)
     imageio.imwrite(f'{dir}/overlay/{stem_name}_overlay.png', final_patch)
