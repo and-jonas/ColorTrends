@@ -30,8 +30,8 @@
 # workdir = 'Z:/Public/Jonas/003_ESWW/ColorTrends'
 #
 # # set directories to previously selected training patches
-# dir_positives = f'{workdir}/testing_segmentation_bluebackground/foreground'
-# dir_negatives = f'{workdir}/testing_segmentation_bluebackground/background'
+# dir_positives = f'{workdir}/testing_segmentation_outdoor/foreground'
+# dir_negatives = f'{workdir}/testing_segmentation_outdoor/background'
 #
 # # extract feature data for all pixels in all patches
 # # output is stores in .csv files in the same directories
@@ -60,13 +60,13 @@
 # # to single df
 # train_data = pd.concat(train_data)
 # # export, this may take a while
-# train_data.to_csv(f'{workdir}/testing_segmentation_bluebackground/training_data.csv', index=False)
+# train_data.to_csv(f'{workdir}/testing_segmentation_outdoor/training_data.csv', index=False)
 #
 # # ======================================================================================================================
 # # (3) train random forest classifier
 # # ======================================================================================================================
 #
-# train_data = pd.read_csv(f'{workdir}/testing_segmentation_bluebackground/training_data.csv')
+# train_data = pd.read_csv(f'{workdir}/testing_segmentation_outdoor/training_data.csv')
 #
 # # OPTIONAL: sample an equal number of rows per class for training
 # n_pos = train_data.groupby('response').count().iloc[0, 0]
@@ -133,11 +133,11 @@
 #
 # # specify model hyper-parameters
 # clf = RandomForestClassifier(
-#     max_depth=30,  # maximum depth of 95 decision nodes for each decision tree
+#     max_depth=100,  # maximum depth of 95 decision nodes for each decision tree
 #     max_features=8,  # maximum of 6 features (channels) are considered when forming a decision node
 #     min_samples_leaf=6,  # minimum of 6 samples needed to form a final leaf
-#     min_samples_split=12,  # minimum 4 samples needed to create a decision node
-#     n_estimators=50,  # maximum of 55 decision trees
+#     min_samples_split=10,  # minimum 4 samples needed to create a decision node
+#     n_estimators=20,  # maximum of 55 decision trees
 #     bootstrap=False,  # don't reuse samples
 #     random_state=1,
 #     n_jobs=-1
@@ -148,7 +148,7 @@
 # score = model.score(X, y)
 #
 # # save model
-# path = f'{workdir}/testing_segmentation_bluebackground/Output/Models'
+# path = f'{workdir}/testing_segmentation_outdoor/Output/Models'
 # if not Path(path).exists():
 #     Path(path).mkdir(parents=True, exist_ok=True)
 # pkl_filename = f'{path}/rf_segmentation.pkl'
@@ -165,9 +165,9 @@ workdir = 'Z:/Public/Jonas/003_ESWW/ColorTrends'
 
 
 def run():
-    dir_to_process = f'{workdir}/testing_segmentation_bluebackground/test_images'
-    dir_output = f'{workdir}/testing_segmentation_bluebackground/Output'
-    dir_model = f'{workdir}/testing_segmentation_bluebackground/rf_segmentation.pkl'
+    dir_to_process = f'{workdir}/testing_segmentation_outdoor/cropped'
+    dir_output = f'{workdir}/testing_segmentation_outdoor/Output'
+    dir_model = f'{workdir}/testing_segmentation_outdoor/rf_segmentation.pkl'
     image_pre_segmentor = ImagePreSegmentor(dir_to_process=dir_to_process,
                                             dir_model=dir_model,
                                             dir_output=dir_output)

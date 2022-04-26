@@ -8,12 +8,14 @@
 
 
 import SegmentationFunctions
+import utils
 from PIL import Image
 import os, glob, pickle
 import numpy as np
 import cv2
 import imageio
 from pathlib import Path
+import scipy
 
 
 class ImagePreSegmentor:
@@ -70,13 +72,18 @@ class ImagePreSegmentor:
         # TODO define a better threshold value
         binary_mask = np.where(probabilities > 0.65, 1, 0)
 
-        # TODO filter masks for small objects and fill small holes
-
         # smooth binary mask
-        binary_mask = cv2.medianBlur(binary_mask.astype("uint8"), 7)
+        # TODO optimize the kernel size
+        binary_mask = cv2.medianBlur(binary_mask.astype("uint8"), 3)
+
+        # TODO optimize the filters
+        mask_filtered = utils.filter_objects_size(binary_mask, 150, "smaller")
+        m_inv = cv2.bitwise_not(mask_filtered*255)
+        mask_filtered = utils.filter_objects_size(m_inv, 15, "smaller")
+        mask_filtered = cv2.bitwise_not(mask_filtered)
 
         # create overlay
-        M = binary_mask.ravel()
+        M = mask_filtered.ravel()
         M = np.expand_dims(M, -1)
         outmask = np.dot(M, np.array([[255, 0, 0, 75]]))
         outmask = np.reshape(outmask, newshape=(img.shape[0], img.shape[1], 4))
@@ -87,9 +94,7 @@ class ImagePreSegmentor:
         img_.paste(mask, (0, 0), mask)
         overlay = np.asarray(img_)
 
-        binary_mask = np.uint8(binary_mask * 255)
-
-        return probabilities, binary_mask, overlay
+        return probabilities, mask_filtered, overlay
 
     def segment_images(self, img_type):
         """
@@ -110,10 +115,10 @@ class ImagePreSegmentor:
 
             # output paths
             proba_name = self.path_proba / basename
-            mask_name = self.path_mask / basename
+            mask_name = self.path_mask / pngname
             overlay_name = self.path_overlay / pngname
 
-            print(overlay_name)
+            # print(overlay_name)
 
             # save masks
             imageio.imwrite(mask_name, mask)

@@ -139,6 +139,55 @@ def calculate_Index(img):
 
 # =====
 
+
+def flatten_contour_data(input_contour, asarray, as_point_list=True):
+    """
+    Extract contour points from cv2 format into point list
+    :param input_contour: The cv2 contour to extract
+    :param asarray: Boolean, whether output should be returned as an array
+    :param as_point_list: Boolean, whetheer output should be returned as a point list
+    :return: array or list containing the contour point coordinate pairs
+    """
+    xs = []
+    ys = []
+    for point in input_contour[0]:
+        x = point[0][1]
+        y = point[0][0]
+        xs.append(x)
+        ys.append(y)
+    if as_point_list:
+        point_list = []
+        # for a, b in zip(xs, ys):
+        for a, b in zip(ys, xs):
+            point_list.append([a, b])
+            c = point_list
+        if asarray:
+            c = np.asarray(point_list)
+        return c
+    else:
+        return xs, ys
+
+def make_point_list(input):
+    """
+    Transform cv2 format to ordinary point list
+    :param input:
+    :return: list of point coordinates
+    """
+    xs = []
+    ys = []
+    for point in range(len(input)):
+        x = input[point]
+        y = input[point]
+        xs.append(x)
+        ys.append(y)
+    point_list = []
+    for a, b in zip(xs, ys):
+        point_list.append([a, b])
+    c = point_list
+    return c
+
+# =====
+
 # image quilting
 
 import numpy as np
