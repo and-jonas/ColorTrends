@@ -28,6 +28,14 @@ class TrainingPatchSelector:
         self.dir_negatives = dir_negatives
         self.dir_control = dir_control
 
+    def prepare_workspace(self):
+        """
+        Creates all required output directories
+        """
+        Path(self.dir_positives).mkdir(parents=True, exist_ok=True)
+        Path(self.dir_negatives).mkdir(parents=True, exist_ok=True)
+        Path(self.dir_control).mkdir(parents=True, exist_ok=True)
+
     def define_rois(self, img, training_coordinates=[]):
 
         plt.interactive(True)
@@ -202,6 +210,7 @@ class TrainingPatchSelector:
                 df.to_csv(path, index=False)
 
     def iterate_images(self):
+        self.prepare_workspace()
         files = self.get_files_to_process()
         for file in files:
             print(file)

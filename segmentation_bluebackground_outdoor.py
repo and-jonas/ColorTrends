@@ -1,5 +1,4 @@
 #
-#
 # # ======================================================================================================================
 # # Author: Jonas Anderegg, jonas.anderegg@usys.ethz.ch
 # # Extract training data from labelled patches and train segmentation algorithm

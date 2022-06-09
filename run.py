@@ -3,7 +3,7 @@
 # Author: Jonas Anderegg, jonas.anderegg@usys.ethz.ch
 # Project: LesionZoo
 # Date: 15.03.2021
-# Sample training data for lesion classification
+# Sample training data blue background removal
 # ======================================================================================================================
 
 

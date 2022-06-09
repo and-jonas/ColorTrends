@@ -17,12 +17,14 @@ import scipy
 # directories
 path = "P:/Public/Jonas/003_ESWW/ColorTrends"
 out_dir = f"{path}/testing_segmentation_outdoor/synthetic_images"
-soil_dir = f"{path}/TrainSoil/large_soil_new/soil_patches"
+# soil_dir = f"{path}/TrainSoil/large_soil_new/soil_patches"
+soil_dir = f"{path}/testing_segmentation_outdoor/2022_04_19/soil"
 plant_dir = f"{path}/testing_segmentation_outdoor/cropped"
 mask_dir = f"{path}/testing_segmentation_outdoor/fine_annotated_test_task/SegmentationClass"
 
 # list soil and plant images
-soils = glob.glob(f'{soil_dir}/*.png')
+# soils = glob.glob(f'{soil_dir}/*.png')
+soils = glob.glob(f'{soil_dir}/*.JPG')
 plants = glob.glob(f'{plant_dir}/*.JPG')[:18]
 masks = glob.glob(f'{mask_dir}/*.png')[:18]
 
@@ -184,6 +186,21 @@ for p, m in zip(plants, masks):
         filled_holes = final_patch + hole_filler
 
         # ==============================================================================================================
+
+        # blur edges
+        edge_mask_thin = np.zeros_like(mask_erode)
+        edge_mask = np.zeros_like(mask_erode)
+        contours, hier = cv2.findContours(mask_erode, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_NONE)
+        for c in contours:
+            cv2.drawContours(edge_mask, c, -1, color=1, thickness=6)
+            cv2.drawContours(edge_mask_thin, c, -1, color=1, thickness=3)
+
+        # blur the final image and multiply with the hole mask
+        blurred_edges = cv2.blur(filled_holes, (3, 3)) * np.dstack([edge_mask, edge_mask, edge_mask])
+
+        # replace "original" edges with blurred edges
+        idx = np.where(edge_mask_thin == 1)
+        filled_holes[idx] = blurred_edges[idx]
 
         # blur image
         if smoothing == "blur":

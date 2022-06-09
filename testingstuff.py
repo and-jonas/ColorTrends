@@ -331,3 +331,10 @@ axs[1].set_title('orig_mask')
 axs[2].imshow(output_solver)
 axs[2].set_title('orig_mask')
 plt.show(block=True)
+
+
+import cv2
+
+therm_img = cv2.imread("O:/Evaluation/Hiwi/2022_PhotoInd_Anderegg_Jonas_MSP4/220530/10/220530-105204-372_2/220530-105204-360_2_MS_IMG_0001_1.tif")
+
+plt.imshow(therm_img)

@@ -47,18 +47,126 @@ def random_patch(img, size, frame, random_patch=True):
     return img_patch, coords
 
 
-def random_soil_patch(img, size):
+def sample_random_patch(img, size, obstruction_mask=None):
+    """
+    Samples a random patch with defined size from an image.
+    :param img: The image to sample the patch from
+    :param size: a tuple defining the width and height of the patch
+    :param obstruction_mask: if available, a binary mask with obstructions dominant. The patch will not be sampled
+    from an image area containing obstructions.
+    :return: the sampled patch and a tuple of coordinates defining where the patch was sampled
+    """
+    checker = False
 
-    # randomly select a patch
-    y1 = random.randrange(0, img.shape[0]-size[0])
-    x1 = random.randrange(0, img.shape[1]-size[1])
-    y2 = y1 + size[0]
-    x2 = x1 + size[1]
+    while not checker:
+
+        # randomly select a patch
+        y1 = random.randrange(0, img.shape[0]-size[0])
+        x1 = random.randrange(0, img.shape[1]-size[1])
+        y2 = y1 + size[0]
+        x2 = x1 + size[1]
+
+        if obstruction_mask is not None:
+            mask_patch = obstruction_mask[y1:y2, x1:x2]
+            if (mask_patch == 1).any():
+                checker = False
+            else:
+                checker = True
 
     img_patch = img[y1:y2, x1:x2, :]
-    coords = (x1, x2, y1, y2)
+    coordinates = (x1, x2, y1, y2)
 
-    return img_patch, coords
+    return img_patch, coordinates
+
+
+def color_correction(filename_target, filename_source, output_directory):
+
+    print("- performing color correction...")
+
+    # read target image and transform to RGB
+    target_img, targetpath, targetname = pcv.readimage(filename=filename_target)
+    target_img = cv2.cvtColor(target_img, cv2.COLOR_BGR2RGB)
+
+    # rotate image if not landscape
+    if target_img.shape[0] > target_img.shape[1]:
+        target_img = np.rot90(np.rot90(np.rot90(target_img)))
+
+    # detect the color checker
+    try:
+        dataframe1, start, space = pcv.transform.find_color_card(rgb_img=target_img, background='light')
+    except:
+        dataframe1, start, space = pcv.transform.find_color_card(rgb_img=target_img, background='dark')
+    target_mask = pcv.transform.create_color_card_mask(target_img, radius=15, start_coord=start,
+                                                       spacing=space, nrows=4, ncols=6)
+
+    # read source image and transform to RGB
+    source_img, sourcepath, sourcename = pcv.readimage(filename=filename_source)
+    source_img = cv2.cvtColor(source_img, cv2.COLOR_BGR2RGB)
+
+    # rotate image if not landscape
+    if source_img.shape[0] > source_img.shape[1]:
+        source_img = np.rot90(np.rot90(np.rot90(source_img)))
+
+    # detect the color checker
+    try:
+        dataframe1, start, space = pcv.transform.find_color_card(rgb_img=source_img, background='light')
+    except:
+        dataframe1, start, space = pcv.transform.find_color_card(rgb_img=source_img, background='dark')
+
+    source_mask = pcv.transform.create_color_card_mask(source_img, radius=10, start_coord=start,
+                                                       spacing=space, nrows=4, ncols=6)
+
+    # perform the correction
+    tm, sm, transformation_matrix, corrected_img = pcv.transform.correct_color(target_img=target_img,
+                                                                               target_mask=target_mask,
+                                                                               source_img=source_img,
+                                                                               source_mask=source_mask,
+                                                                               output_directory=output_directory)
+
+    return corrected_img
+
+
+def get_soil_patch(image, size):
+
+    print(" - extracting patch...")
+
+    image_cut = image[:4500, :, :]
+
+    # detect vegetation
+    exg = index_TGI(image_cut)
+    mask = exg > 4.5
+    mask = np.uint8(np.where(mask, 1, 0))
+    mask_filtered = filter_objects_size(mask, 2000, "smaller")
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (5, 5))
+    closing = cv2.morphologyEx(mask_filtered, cv2.MORPH_CLOSE, kernel)
+    mask_veg = filter_objects_size(closing, 25000, "smaller")
+
+    # detect shadowed areas
+    grey = cv2.cvtColor(image_cut, cv2.COLOR_RGB2GRAY)
+    mask = grey < 50
+    mask = np.uint8(np.where(mask, 1, 0))
+    mask = cv2.medianBlur(mask, 31)
+    mask_shadows = filter_objects_size(mask, 25000, "smaller")
+
+    # detect metal bars
+    mask = grey > 200
+    mask = np.uint8(np.where(mask, 1, 0))
+    mask = cv2.medianBlur(mask, 31)
+    mask_bars = filter_objects_size(mask, 25000, "smaller")
+
+    # combine masks
+    combined_mask = mask_veg | mask_shadows | mask_bars
+    cnts, _ = cv2.findContours(combined_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    final_mask = np.zeros_like(combined_mask)
+    for c in cnts:
+        cv2.drawContours(final_mask, c, -1, color=1, thickness=150)
+
+    # sample a 2500 x 2500 patch from usable image area
+    soil_patch, coordinates = sample_random_patch(image_cut,
+                                                  size=size,
+                                                  obstruction_mask=combined_mask)
+
+    return soil_patch, coordinates
 
 
 def sample_patches(image, mask, size):
@@ -186,170 +294,21 @@ def make_point_list(input):
     c = point_list
     return c
 
-# =====
 
-# image quilting
+def index_TGI(image):
+    image = np.float32(image)
 
-import numpy as np
-import math
-from skimage import io, util
-import heapq
+    R, G, B = cv2.split(image)
 
+    normalizer = np.array(R + G + B, dtype=np.float32)
+    # Avoid division by zero
+    normalizer[normalizer == 0] = 1
+    r, g, b = (R, G, B) / normalizer
 
-def randomPatch(texture, patchLength):
-    h, w, _ = texture.shape
-    i = np.random.randint(h - patchLength)
-    j = np.random.randint(w - patchLength)
+    lambda_R = 670
+    lambda_G = 550
+    lambda_B = 480
 
-    return texture[i:i + patchLength, j:j + patchLength]
+    rTGI = -0.5 * ((lambda_R - lambda_B) * (r - g) - (lambda_R - lambda_G) * (r - b))
 
-
-def L2OverlapDiff(patch, patchLength, overlap, res, y, x):
-    error = 0
-
-    if x > 0:
-        left = patch[:, :overlap] - res[y:y + patchLength, x:x + overlap]
-        error += np.sum(left ** 2)
-
-    if y > 0:
-        up = patch[:overlap, :] - res[y:y + overlap, x:x + patchLength]
-        error += np.sum(up ** 2)
-
-    if x > 0 and y > 0:
-        corner = patch[:overlap, :overlap] - res[y:y + overlap, x:x + overlap]
-        error -= np.sum(corner ** 2)
-
-    return error
-
-
-def randomBestPatch(texture, patchLength, overlap, res, y, x):
-    h, w, _ = texture.shape
-    errors = np.zeros((h - patchLength, w - patchLength))
-
-    for i in range(h - patchLength):
-        for j in range(w - patchLength):
-            patch = texture[i:i + patchLength, j:j + patchLength]
-            e = L2OverlapDiff(patch, patchLength, overlap, res, y, x)
-            errors[i, j] = e
-
-    i, j = np.unravel_index(np.argmin(errors), errors.shape)
-    return texture[i:i + patchLength, j:j + patchLength]
-
-
-def minCutPath(errors):
-    # dijkstra's algorithm vertical
-    pq = [(error, [i]) for i, error in enumerate(errors[0])]
-    heapq.heapify(pq)
-
-    h, w = errors.shape
-    seen = set()
-
-    while pq:
-        error, path = heapq.heappop(pq)
-        curDepth = len(path)
-        curIndex = path[-1]
-
-        if curDepth == h:
-            return path
-
-        for delta in -1, 0, 1:
-            nextIndex = curIndex + delta
-
-            if 0 <= nextIndex < w:
-                if (curDepth, nextIndex) not in seen:
-                    cumError = error + errors[curDepth, nextIndex]
-                    heapq.heappush(pq, (cumError, path + [nextIndex]))
-                    seen.add((curDepth, nextIndex))
-
-
-def minCutPath2(errors):
-    # dynamic programming, unused
-    errors = np.pad(errors, [(0, 0), (1, 1)],
-                    mode='constant',
-                    constant_values=np.inf)
-
-    cumError = errors[0].copy()
-    paths = np.zeros_like(errors, dtype=int)
-
-    for i in range(1, len(errors)):
-        M = cumError
-        L = np.roll(M, 1)
-        R = np.roll(M, -1)
-
-        # optimize with np.choose?
-        cumError = np.min((L, M, R), axis=0) + errors[i]
-        paths[i] = np.argmin((L, M, R), axis=0)
-
-    paths -= 1
-
-    minCutPath = [np.argmin(cumError)]
-    for i in reversed(range(1, len(errors))):
-        minCutPath.append(minCutPath[-1] + paths[i][minCutPath[-1]])
-
-    return map(lambda x: x - 1, reversed(minCutPath))
-
-
-def minCutPatch(patch, patchLength, overlap, res, y, x):
-    patch = patch.copy()
-    dy, dx, _ = patch.shape
-    minCut = np.zeros_like(patch, dtype=bool)
-
-    if x > 0:
-        left = patch[:, :overlap] - res[y:y + dy, x:x + overlap]
-        leftL2 = np.sum(left ** 2, axis=2)
-        for i, j in enumerate(minCutPath(leftL2)):
-            minCut[i, :j] = True
-
-    if y > 0:
-        up = patch[:overlap, :] - res[y:y + overlap, x:x + dx]
-        upL2 = np.sum(up ** 2, axis=2)
-        for j, i in enumerate(minCutPath(upL2.T)):
-            minCut[:i, j] = True
-
-    np.copyto(patch, res[y:y + dy, x:x + dx], where=minCut)
-
-    return patch
-
-
-def quilt(texture, patchLength, numPatches, mode="cut", sequence=False):
-    texture = util.img_as_float(texture)
-
-    overlap = patchLength // 6
-    numPatchesHigh, numPatchesWide = numPatches
-
-    h = (numPatchesHigh * patchLength) - (numPatchesHigh - 1) * overlap
-    w = (numPatchesWide * patchLength) - (numPatchesWide - 1) * overlap
-
-    res = np.zeros((h, w, texture.shape[2]))
-
-    for i in range(numPatchesHigh):
-        for j in range(numPatchesWide):
-            y = i * (patchLength - overlap)
-            x = j * (patchLength - overlap)
-
-            if i == 0 and j == 0 or mode == "random":
-                patch = randomPatch(texture, patchLength)
-            elif mode == "best":
-                patch = randomBestPatch(texture, patchLength, overlap, res, y, x)
-            elif mode == "cut":
-                patch = randomBestPatch(texture, patchLength, overlap, res, y, x)
-                patch = minCutPatch(patch, patchLength, overlap, res, y, x)
-
-            res[y:y + patchLength, x:x + patchLength] = patch
-
-            if sequence:
-                io.imshow(res)
-                io.show()
-
-    return res
-
-
-def quiltSize(texture, patchLength, shape, mode="cut"):
-    overlap = patchLength // 6
-    h, w = shape
-
-    numPatchesHigh = math.ceil((h - patchLength) / (patchLength - overlap)) + 1 or 1
-    numPatchesWide = math.ceil((w - patchLength) / (patchLength - overlap)) + 1 or 1
-    res = quilt(texture, patchLength, (numPatchesHigh, numPatchesWide), mode)
-
-    return res[:h, :w]
+    return rTGI
