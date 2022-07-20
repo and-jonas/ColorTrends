@@ -18,6 +18,8 @@ import cv2
 import imageio
 from pathlib import Path
 
+from utils_smoothing import smooth_edge_aware
+
 
 class ImagePreSegmentor:
 
@@ -29,6 +31,7 @@ class ImagePreSegmentor:
         self.path_mask = self.path_output / "Mask"
         self.path_proba = self.path_output / "Proba"
         self.path_overlay = self.path_output / "Overlay"
+        self.path_solver = self.path_output / "Solver"
         self.image_type = img_type
         self.overwrite = overwrite
 
@@ -40,6 +43,7 @@ class ImagePreSegmentor:
         self.path_mask.mkdir(parents=True, exist_ok=True)
         self.path_proba.mkdir(parents=True, exist_ok=True)
         self.path_overlay.mkdir(parents=True, exist_ok=True)
+        self.path_solver.mkdir(parents=True, exist_ok=True)
 
     def file_feed(self):
         """
@@ -71,16 +75,25 @@ class ImagePreSegmentor:
         # restore image
         probabilities = segmented_flatten_probs.reshape((descriptors.shape[0], descriptors.shape[1]))
 
-        # threshold image on probabilities
-        # TODO define a better threshold value
-        binary_mask = np.where(probabilities > 0.5, 1, 0)
+        # perform edge-aware smoothing
+        output_solver, thresh = smooth_edge_aware(reference=img, target=probabilities)
 
         # smooth binary mask
         # TODO optimize the kernel size
-        binary_mask = cv2.medianBlur(binary_mask.astype("uint8"), 3)
+        binary_mask = cv2.medianBlur(thresh.astype("uint8"), 7)
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
+        dilate_th = cv2.dilate(binary_mask, kernel, iterations=1)
+
+        # # Plot
+        # fig, axs = plt.subplots(1, 2, sharex=True, sharey=True)
+        # axs[0].imshow(binary_mask)
+        # axs[0].set_title('img')
+        # axs[1].imshow(dilate_th)
+        # axs[1].set_title('orig_mask')
+        # plt.show(block=True)
 
         # TODO optimize the filters
-        mask_filtered = utils.filter_objects_size(binary_mask, 150, "smaller")
+        mask_filtered = utils.filter_objects_size(dilate_th, 150, "smaller")
         m_inv = cv2.bitwise_not(mask_filtered*255)
         mask_filtered = utils.filter_objects_size(m_inv, 150, "smaller")
         mask_filtered = cv2.bitwise_not(mask_filtered)
@@ -97,7 +110,9 @@ class ImagePreSegmentor:
         img_.paste(mask, (0, 0), mask)
         overlay = np.asarray(img_)
 
-        return probabilities, mask_filtered, overlay
+        # plt.imshow(overlay)
+
+        return probabilities, output_solver, mask_filtered, overlay
 
     def segment_images(self):
         """
@@ -111,21 +126,27 @@ class ImagePreSegmentor:
 
             # get file basename
             base_name = os.path.basename(file)
+
+            print(base_name)
+
             png_name = base_name.replace("." + self.image_type, ".png")
 
             # output paths
             proba_name = self.path_proba / base_name
             mask_name = self.path_mask / png_name
             overlay_name = self.path_overlay / png_name
+            solver_name = self.path_solver / png_name
 
             if not self.overwrite and os.path.exists(mask_name):
                 continue
             else:
                 img = imageio.imread(file)
-                proba, mask, overlay = self.segment_image(img)
+                proba, solver, mask, overlay = self.segment_image(img)
 
                 # save masks
                 imageio.imwrite(mask_name, mask)
                 imageio.imwrite(proba_name, proba)
                 imageio.imwrite(overlay_name, overlay)
+                imageio.imwrite(solver_name, solver)
+
 

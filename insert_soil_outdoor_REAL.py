@@ -27,14 +27,15 @@ mask_dir = f"{path}/Output/Mask"
 plants = glob.glob(f'{plant_dir}/*.JPG')
 masks = glob.glob(f'{mask_dir}/*.png')
 
-soil_image_type = "Original"  # "Corrected" or "Original"
+soil_image_type = "Corrected"  # "Corrected" or "Original"
+smoothing = True
 
 # iterate over all plants
 for p, m in zip(plants, masks):
 
     stem_name = os.path.basename(p).replace(".JPG", "")
     Plot_ID, date = stem_name.split("_")
-    date = "_".join([date[:4], date[4:6], date[6:8]])
+    date = "_".join([date[:4], date[4:6], date[6:8], date[8]])
 
     img = imageio.imread(p)
     mask = imageio.imread(m)
@@ -199,8 +200,9 @@ for p, m in zip(plants, masks):
         imageio.imwrite(synth_img_name, synth_image)
 
         # # blur image
-        # if smoothing == "blur":
-        #     synth_image = cv2.blur(filled_holes, (2, 2))
+        if smoothing:
+            synth_image = cv2.blur(filled_holes, (2, 2))
+        plt.imshow(synth_image)
         #     x, y = synth_image.shape[:2]
         #     x_new = int(np.ceil(x / 4 * 3))
         #     y_new = int(np.ceil(y / 4 * 3))

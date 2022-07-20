@@ -2,6 +2,7 @@ import numpy as np
 import cv2
 import random
 from plantcv import plantcv as pcv
+import copy
 
 
 def random_patch(img, size, frame, random_patch=True):
@@ -57,8 +58,9 @@ def sample_random_patch(img, size, obstruction_mask=None):
     :return: the sampled patch and a tuple of coordinates defining where the patch was sampled
     """
     checker = False
+    checker2 = 0
 
-    while not checker:
+    while not checker and checker2 < 6:
 
         # randomly select a patch
         y1 = random.randrange(0, img.shape[0]-size[0])
@@ -73,10 +75,55 @@ def sample_random_patch(img, size, obstruction_mask=None):
             else:
                 checker = True
 
+        checker2 += 1
+
     img_patch = img[y1:y2, x1:x2, :]
     coordinates = (x1, x2, y1, y2)
 
     return img_patch, coordinates
+
+
+def sample_patch_from_corner(image, patch_size=2400):
+    """
+    Crops a patch from the image, starting at a random image corner.
+    :param image: the image to crop a patch from
+    :param patch_size: the size of the patch
+    :return: patch, image coordinates of two corners of the patch, a checker image with the rectangle marked
+    """
+    # randomly determine the corner
+    corner = random.randrange(4)
+    # fix the corner coordinates depending on the corner
+    if corner == 0:
+        y1 = 0
+        x1 = 0
+        y2 = y1 + patch_size
+        x2 = x1 + patch_size
+    elif corner == 1:
+        y2 = image.shape[0]
+        y1 = y2 - patch_size
+        x1 = 0
+        x2 = x1 + patch_size
+    elif corner == 2:
+        y2 = image.shape[0]
+        y1 = y2 - patch_size
+        x2 = image.shape[1]
+        x1 = x2 - patch_size
+    elif corner == 3:
+        y1 = 0
+        y2 = y1 + patch_size
+        x2 = image.shape[1]
+        x1 = x2 - patch_size
+        x2 = x1 + patch_size
+
+    # crop the image and extract the coordinates
+    patch = image[y1:y2, x1:x2, :]
+    coordinates = (x1, x2, y1, y2)
+
+    # generate a checker image
+    checker = copy.copy(image)
+    cv2.rectangle(checker, pt1=(x1, y1), pt2=(x2, y2), color=(255, 0, 0), thickness=5)
+
+    return patch, coordinates, checker
 
 
 def color_correction(filename_target, filename_source, output_directory):

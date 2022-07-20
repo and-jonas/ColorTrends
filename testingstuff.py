@@ -1,24 +1,30 @@
 
-import csv
-import sys
-with open('temp.csv', 'wt') as f:
-    writer = csv.writer(f)
-    writer.writerow(('id1', 'id2', 'date'))
-    for i in range(3):
-        row = (
-            i + 1,
-            chr(ord('a') + i),
-            '01/{:02d}/2019'.format(i + 1),)
-        writer.writerow(row)
-print(open('temp.csv', 'rt').read())
+# import csv
+# import sys
+# with open('temp.csv', 'wt') as f:
+#     writer = csv.writer(f)
+#     writer.writerow(('id1', 'id2', 'date'))
+#     for i in range(3):
+#         row = (
+#             i + 1,
+#             chr(ord('a') + i),
+#             '01/{:02d}/2019'.format(i + 1),)
+#         writer.writerow(row)
+# print(open('temp.csv', 'rt').read())
 
 # %pylab inline
 # %matplotlib inline
 # import pylab
+
+import matplotlib
+matplotlib.use('Qt5Agg')
+import matplotlib.pyplot as plt
+
 from pylab import *
 import seaborn as sns
 import time
 from datetime import datetime
+
 
 
 sns.set_style('white')
@@ -43,20 +49,29 @@ data_folder = "Z:/Public/Jonas/003_ESWW/ColorTrends/testing_segmentation_bluebac
 
 # The RGB image that whose edges we will respect
 # reference = imread(os.path.join(data_folder, 'rgb000120.png'))
-reference = imread(os.path.join(data_folder, 'test_images/IMG_0099.JPG'))
+# reference = imread(os.path.join(data_folder, 'test_images/IMG_0099.JPG'))
+reference = imread(os.path.join(data_folder, 'test_images/ESWW0002_20220701.JPG'))
+# reference = imread("C:/Users/anjonas/Pictures/2022_01_12/F2.8_50mm_2m/2022_01_14/test/data/depth_superres/reference.png")
+
 # reference = (reference/256).astype('uint8')
 # reference = cv2.medianBlur(reference, 5)
 
 # The 1D image whose values we would like to filter
 # target = imread(os.path.join(data_folder, 'depth000120.png'))
 # target = imread(os.path.join(data_folder, 'target.png'))
-target = imread(os.path.join(data_folder, 'Output/Masks/IMG_0099.JPG'))
+# target = imread(os.path.join(data_folder, 'Output/Masks/IMG_0099.JPG'))
+target = imread("Z:/Public/Jonas/Data/ESWW006/Images_trainset/Output/Proba/ESWW0002_20220701.JPG")
+# target = imread("Z:/Public/Jonas/Data/ESWW006/Images_trainset/Output/Mask/ESWW0002_20220701.png")
+
 # A confidence image, representing how much we trust the values in "target".
 # Pixels with zero confidence are ignored.
 # Confidence can be set to all (2^16-1)'s to effectively disable it.
 # confidence_0 = np.full((reference.shape[0], reference.shape[1]), pow(2, 16)-1)
 # confidence_0 = imread(os.path.join(data_folder, 'confidence.png'))
-confidence_0 = imread(os.path.join(data_folder, 'Output/Masks/IMG_0099_proba.JPG'))*256
+# confidence_0 = imread(os.path.join(data_folder, 'Output/Masks/IMG_0099_proba.JPG'))*256
+# confidence_0 = imread("C:/Users/anjonas/Pictures/2022_01_12/F2.8_50mm_2m/2022_01_14/test/data/depth_superres/confidence.png")
+# Confidence can be set to all (2^16-1)'s to effectively disable it.
+confidence_0 = np.full((reference.shape[0], reference.shape[1]), pow(2, 16)-1)
 
 # confidence = confidence_0[:target.shape[0],:target.shape[1],:]
 # confidence = transform.resize(confidence_0, (target.shape[0], target.shape[1]))
@@ -331,10 +346,3 @@ axs[1].set_title('orig_mask')
 axs[2].imshow(output_solver)
 axs[2].set_title('orig_mask')
 plt.show(block=True)
-
-
-import cv2
-
-therm_img = cv2.imread("O:/Evaluation/Hiwi/2022_PhotoInd_Anderegg_Jonas_MSP4/220530/10/220530-105204-372_2/220530-105204-360_2_MS_IMG_0001_1.tif")
-
-plt.imshow(therm_img)
