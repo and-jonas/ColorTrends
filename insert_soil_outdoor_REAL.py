@@ -14,198 +14,435 @@ import glob
 import scipy
 from pathlib import Path
 
+# # ======================================================================================================================
+#
+# # # directories
+# # path = "Z:/Public/Jonas/Data/ESWW006/Images_trainset"
+# # out_dir = f"{path}/Output/synthetic_images"
+# # plant_dir = f"{path}/RectPatches"
+# # mask_dir = f"{path}/Output/Mask"
+#
+# # # directories
+# # path = "Z:/Public/Jonas/Data/ESWW006/Images_trainset/subset_1"
+# # out_dir = f"{path}/Output/synthetic_images"
+# # plant_dir = f"{path}/patches"
+# # mask_dir = f"{path}/masks"
+#
+# # directories
+# path = "Z:/Public/Jonas/Data/ESWW006/Images_trainset/"
+# out_dir = f"{path}/Output/synthetic_images"
+# plant_dir = f"{path}/Output/annotations_manual/all"
+# mask_dir = f"{path}//Output/annotations_manual/all"
+#
+# # list soil and plant images
+# # soils = glob.glob(f'{soil_dir}/*.png')
+# plants = glob.glob(f'{plant_dir}/*.JPG')
+# masks = glob.glob(f'{mask_dir}/*.png')
+#
+# smoothing = True
+#
+# # # define specific images to be processed (if needed)
+# # plants = ['Z:/Public/Jonas/Data/ESWW006/Images_trainset//Output/annotations_manual/all/ESWW2104_202207042.JPG']
+# # masks = ['Z:/Public/Jonas/Data/ESWW006/Images_trainset//Output/annotations_manual/all/ESWW2104_202207042_mask.png']
+#
+# # iterate over all plants
+# for p, m in zip(plants, masks):
+#
+#     stem_name = os.path.basename(p).replace(".JPG", "")
+#     Plot_ID, date = stem_name.split("_")
+#     # date = "_".join([date[:4], date[4:6], date[6:8], date[8]])
+#     date = "_".join([date[:4], date[4:6], date[6:8]])
+#
+#     img = imageio.imread(p)
+#     mask = imageio.imread(m)
+#     if not mask.shape == [2400, 2400]:
+#         mask = utils.binarize_mask(mask)
+#         mask = np.bitwise_not(mask)
+#
+#     # convert segmentation mask to binary mask
+#     # mask_0 = np.where(mask == (250, 50, 83), (255, 255, 255), (0, 0, 0))
+#     # mask_0 = np.uint8(mask_0[:, :, 1])
+#     mask_0 = np.bitwise_not(mask)  # plant must be foreground
+#
+#     # erode original mask to get rid of the blueish edge pixels
+#     kernel = np.ones((2, 2), np.uint8)
+#     mask_erode = cv2.erode(mask_0, kernel)
+#
+#     # dilate original mask and invert
+#     # this will give a soil mask with a "safety margin" along the edges of leaves
+#     kernel = np.ones((3, 3), np.uint8)
+#     mask_dilate = cv2.dilate(mask_0, kernel)
+#     mask_dilate_inv = cv2.bitwise_not(mask_dilate)
+#
+#     # get connected components
+#     num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(mask_dilate)
+#     _, labels_bg, _, _ = cv2.connectedComponentsWithStats(mask_dilate_inv)
+#
+#     final_image = copy.copy(img)
+#     histogram_matching = False
+#     smoothing = "blur"
+#
+#     # isolate soil patches in original image, mask plant
+#     img_ = np.zeros_like(img)
+#     idx = np.where(labels == 0)
+#     img_[idx] = img[idx]
+#
+#     # convert the original image with plant masked to gray scale
+#     soil_gray = cv2.cvtColor(img_, cv2.COLOR_RGB2GRAY)
+#     soil_gray = soil_gray / soil_gray.max()
+#
+#     # TODO optimize parameters
+#     # apply percentile filter sequentially.
+#     # first using a large kernel to "fill" in soil along long and fairly straight edges
+#     # this will fill the "gap" between the eroded soil mask and the eroded plant mask
+#     perc = scipy.ndimage.percentile_filter(soil_gray, percentile=65, size=15, mode='reflect')
+#     # then using a smaller kernel
+#     # sequential application to ensure growing of thin or small regions,
+#     # e.g. small holes in plant or where leaves cross in small angles.
+#     perc = scipy.ndimage.percentile_filter(perc, percentile=80, size=7, mode='reflect')
+#     perc = scipy.ndimage.percentile_filter(perc, percentile=80, size=7, mode='reflect')
+#     perc = scipy.ndimage.percentile_filter(perc, percentile=80, size=7, mode='reflect')
+#     perc = scipy.ndimage.percentile_filter(perc, percentile=80, size=7, mode='reflect')
+#     perc = scipy.ndimage.percentile_filter(perc, percentile=80, size=8, mode='reflect')
+#     perc = scipy.ndimage.percentile_filter(perc, percentile=80, size=8, mode='reflect')
+#     perc = scipy.ndimage.percentile_filter(perc, percentile=80, size=9, mode='reflect')
+#
+#     # mask again all plant pixels
+#     final = np.where(mask_erode == 255, 0, perc)
+#
+#     # replace all soil pixels in the eroded soil mask with their original intensity values
+#     ffinal = np.where(labels_bg != 0, soil_gray, final)
+#
+#     # ==============================================================================================================
+#
+#     # The above "region growing" does not work for small holes
+#     # repair by comparing these holes with the holes in the eroded vegetation mask
+#
+#     # binarize and invert
+#     bin = np.uint8(np.where(ffinal != 0, 255, 0))
+#     bin = np.bitwise_not(bin)
+#
+#     mask_inverted = np.bitwise_not(mask_erode)
+#     n, lab, st, cent = cv2.connectedComponentsWithStats(mask_inverted)
+#     mask_sizefiltered = utils.filter_objects_size(mask_inverted, size_th=500, dir="greater")
+#
+#     # holes present in the eroded mask, but not in the dilated one used before
+#     diff_mask = np.bitwise_and(bin, mask_sizefiltered)
+#
+#     # paste the original content of the holes onto empty image
+#     _, l, _, _ = cv2.connectedComponentsWithStats(mask_sizefiltered)
+#     img2_ = np.zeros_like(img)
+#     idx = np.where(l != 0)
+#     img2_[idx] = img[idx]
+#
+#     # convert to gray scale as done for the rest of the soil background
+#     # and combine with the previous soil intensity image
+#     soil_gray2 = cv2.cvtColor(img2_, cv2.COLOR_RGB2GRAY)
+#     soil_gray2 = soil_gray2 / soil_gray2.max()
+#     soil_gray2 = np.where(diff_mask == 255, soil_gray2, ffinal)
+#
+#     # final post-processing
+#     final_soil_gray = scipy.ndimage.percentile_filter(np.uint8(soil_gray2 * 255),
+#                                                       percentile=60, size=7, mode='reflect')
+#     final_soil_gray = final_soil_gray / 255
+#
+#     soil_paths = glob.glob("Z:/Public/Jonas/Data/ESWW006/Images_trainset/Soil/dif/*.JPG")
+#
+#     for soil_path in soil_paths:
+#
+#         soil_name = os.path.basename(soil_path)
+#         soil_image = imageio.imread(soil_path)
+#         soil, coordinates = utils.get_soil_patch(image=soil_image, size=(2400, 2400))
+#
+#         if soil is None:
+#             continue
+#
+#         r, g, b = cv2.split(soil[:2400, :2400, :3])
+#         r_ = r * final_soil_gray
+#         g_ = g * final_soil_gray
+#         b_ = b * final_soil_gray
+#         img_ = cv2.merge((r_, g_, b_))
+#         img_ = np.uint8(img_)
+#
+#         # ==============================================================================================================
+#
+#         # overlay eroded plant mask to the created soil background
+#         transparency = np.ones_like(img_[:, :, 0]) * 255
+#         transparency[np.where(mask_erode == 255)] = 0
+#         img_final = np.dstack([img_, transparency])
+#         final = PIL.Image.fromarray(np.uint8(img_final))
+#         final = final.convert("RGBA")
+#         img2 = PIL.Image.fromarray(np.uint8(img))
+#         img2.paste(final, (0, 0), final)
+#         final_patch = np.asarray(img2)
+#
+#         # ==============================================================================================================
+#
+#         # remove last remaining holes between soil and eroded plant mask
+#         # get remaining holes and dilate them
+#         mmm = np.zeros_like(final_patch)
+#         idx = np.where(np.all(final_patch == 0, axis=-1))
+#         mmm[idx] = [255, 255, 255]
+#         mmm = mmm[:, :, 0]
+#         kernel = np.ones((4, 4), np.uint8)
+#         mmm_d = cv2.dilate(mmm, kernel)
+#         filter_mask = np.dstack([mmm_d, mmm_d, mmm_d])
+#
+#         # blur the final image and multiply with the hole mask
+#         bblurred = cv2.blur(final_patch, (10, 10)) * filter_mask
+#         hole_filler = bblurred * np.dstack([mmm, mmm, mmm])
+#
+#         # fill the holes
+#         filled_holes = final_patch + hole_filler
+#
+#         # ==============================================================================================================
+#
+#         # blur edges
+#         edge_mask_thin = np.zeros_like(mask_erode)
+#         edge_mask = np.zeros_like(mask_erode)
+#         contours, hier = cv2.findContours(mask_erode, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_NONE)
+#         for c in contours:
+#             cv2.drawContours(edge_mask, c, -1, color=1, thickness=6)
+#             cv2.drawContours(edge_mask_thin, c, -1, color=1, thickness=3)
+#
+#         # blur the final image and multiply with the hole mask
+#         blurred_edges = cv2.blur(filled_holes, (3, 3)) * np.dstack([edge_mask, edge_mask, edge_mask])
+#
+#         # replace "original" edges with blurred edges
+#         idx = np.where(edge_mask_thin == 1)
+#         filled_holes[idx] = blurred_edges[idx]
+#
+#         out_name = soil_name.replace(".JPG", ".png")
+#
+#         img_name = f'{stem_name}_{out_name}'
+#
+#         synth_image = filled_holes
+#
+#         synth_img_name = Path(out_dir) / img_name
+#         imageio.imwrite(synth_img_name, synth_image)
+#
+#         # # # blur image
+#         # if smoothing:
+#         #     synth_image = cv2.blur(filled_holes, (2, 2))
+#
+#         # fig, axs = plt.subplots(1, 2, sharex=True, sharey=True)
+#         # axs[0].imshow(soil)
+#         # axs[0].set_title('img')
+#         # axs[1].imshow(synth_image)
+#         # axs[1].set_title('orig_mask')
+#         # plt.show(block=True)
+#
+#
 # ======================================================================================================================
 
-# directories
-path = "Z:/Public/Jonas/Data/ESWW006/Images_trainset"
-out_dir = f"{path}/Output/synthetic_images"
-plant_dir = f"{path}/RectPatches"
-mask_dir = f"{path}/Output/Mask"
+# divide synthetic images into 4 patches of 1200px x 1200px each
 
-# list soil and plant images
-# soils = glob.glob(f'{soil_dir}/*.png')
-plants = glob.glob(f'{plant_dir}/*.JPG')
-masks = glob.glob(f'{mask_dir}/*.png')
+import utils
+import random
 
-soil_image_type = "Corrected"  # "Corrected" or "Original"
-smoothing = True
+directory = "Z:/Public/Jonas/Data/ESWW006/images_trainset/Output/synthetic_images"
+images = glob.glob(f'{directory}/*.png')
 
-# iterate over all plants
-for p, m in zip(plants, masks):
+out_dir = "Z:/Public/Jonas/Data/ESWW006/images_trainset/Output/CGAN_input/composite2real_2"
 
-    stem_name = os.path.basename(p).replace(".JPG", "")
-    Plot_ID, date = stem_name.split("_")
-    date = "_".join([date[:4], date[4:6], date[6:8], date[8]])
+# for cyclegan
 
-    img = imageio.imread(p)
+trainB = random.sample(images, k=round(len(images)*0.8))
+testB = [item for item in images if item not in trainB]
+
+for im in trainB:
+    img = imageio.imread(im)
+    img_name = os.path.basename(im)
+    tiles = utils.image_tiler(img, stride=1200)
+    for i, tile in enumerate(tiles):
+        out_name = img_name.replace(".png", f"_{i+1}.jpg")
+        imageio.imwrite(f"{out_dir}/trainB/{out_name}", tile)
+
+# ======================================================================================================================
+
+# process masks first
+dir_masks = "Z:/Public/Jonas/Data/ESWW006/images_trainset/Output/annotations_manual/all"
+out_dir_masks = "Z:/Public/Jonas/Data/ESWW006/images_trainset/Output/annotations_manual/all_patches"
+
+# tile masks
+masks = glob.glob(f'{dir_masks}/*_mask.png')
+for m in masks:
     mask = imageio.imread(m)
+    mask_name = os.path.basename(m)
+    mask_bin = utils.binarize_mask(mask)
+    mask_tiles = utils.image_tiler(mask_bin, stride=1200)
+    for j in range(len(mask_tiles)):
+        out_name = mask_name.replace("_mask.png", f"_{j+1}_mask.png")
+        imageio.imwrite(f"{out_dir_masks}/{out_name}", mask_tiles[j])
 
-    # convert segmentation mask to binary mask
-    # mask_0 = np.where(mask == (250, 50, 83), (255, 255, 255), (0, 0, 0))
-    # mask_0 = np.uint8(mask_0[:, :, 1])
-    mask_0 = np.bitwise_not(mask)  # plant must be foreground
+# create train, test, validation from cyclegan output
 
-    # erode original mask to get rid of the blueish edge pixels
-    kernel = np.ones((2, 2), np.uint8)
-    mask_erode = cv2.erode(mask_0, kernel)
+files = glob.glob("C:/Users/anjonas/PycharmProjects/pytorch-CycleGAN-and-pix2pix/results/wheat_cyclegan/test_latest/images/*_fake.png")
 
-    # dilate original mask and invert
-    # this will give a soil mask with a "safety margin" along the edges of leaves
-    kernel = np.ones((3, 3), np.uint8)
-    mask_dilate = cv2.dilate(mask_0, kernel)
-    mask_dilate_inv = cv2.bitwise_not(mask_dilate)
 
-    # get connected components
-    num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(mask_dilate)
-    _, labels_bg, _, _ = cv2.connectedComponentsWithStats(mask_dilate_inv)
+def get_plot_id(file_names):
+    plot_ids = []
+    for name in file_names:
+        n = os.path.basename(name)
+        plot_ids.append(n.split("_")[0])
+    return plot_ids
 
-    final_image = copy.copy(img)
-    histogram_matching = False
-    smoothing = "blur"
 
-    # isolate soil patches in original image, mask plant
-    img_ = np.zeros_like(img)
-    idx = np.where(labels == 0)
-    img_[idx] = img[idx]
+plots = get_plot_id(files)
+plots = np.unique(plots)
 
-    new_soils = glob.glob(f'{path}/{date}/Processed/SoilPatches/{Plot_ID}/{soil_image_type}/*.png')
+n_plots = len(np.unique(plots))
+n_train = int(np.ceil(0.75 * n_plots))
+n_test = int((n_plots - n_train)/2)
+n_val = int(n_test)
 
-    # convert the original image with plant masked to gray scale
-    soil_gray = cv2.cvtColor(img_, cv2.COLOR_RGB2GRAY)
-    soil_gray = soil_gray / soil_gray.max()
+random.seed(10)
+train_plots = random.sample(list(plots), k=n_train)
+not_train = set(plots) - set(train_plots)
+random.seed(10)
+test_plots = random.sample(list(not_train), k=n_test)
+val_plots = list(set(not_train) - set(test_plots))
 
-    # TODO optimize parameters
-    # apply percentile filter sequentially.
-    # first using a large kernel to "fill" in soil along long and fairly straight edges
-    # this will fill the "gap" between the eroded soil mask and the eroded plant mask
-    perc = scipy.ndimage.percentile_filter(soil_gray, percentile=65, size=15, mode='reflect')
-    # then using a smaller kernel
-    # sequential application to ensure growing of thin or small regions,
-    # e.g. small holes in plant or where leaves cross in small angles.
-    perc = scipy.ndimage.percentile_filter(perc, percentile=80, size=7, mode='reflect')
-    perc = scipy.ndimage.percentile_filter(perc, percentile=80, size=7, mode='reflect')
-    perc = scipy.ndimage.percentile_filter(perc, percentile=80, size=7, mode='reflect')
-    perc = scipy.ndimage.percentile_filter(perc, percentile=80, size=7, mode='reflect')
-    perc = scipy.ndimage.percentile_filter(perc, percentile=80, size=8, mode='reflect')
-    perc = scipy.ndimage.percentile_filter(perc, percentile=80, size=8, mode='reflect')
-    perc = scipy.ndimage.percentile_filter(perc, percentile=80, size=9, mode='reflect')
+train_list = []
+for p in train_plots:
+    lst = [s for s in files if p in s]
+    train_list.extend(lst)
 
-    # mask again all plant pixels
-    final = np.where(mask_erode == 255, 0, perc)
+test_list = []
+for p in test_plots:
+    lst = [s for s in files if p in s]
+    test_list.extend(lst)
 
-    # replace all soil pixels in the eroded soil mask with their original intensity values
-    ffinal = np.where(labels_bg != 0, soil_gray, final)
+val_list = []
+for p in val_plots:
+    lst = [s for s in files if p in s]
+    val_list.extend(lst)
 
-    # ==============================================================================================================
+lst = train_list + test_list + val_list
+lst_key = ["train"]*len(train_list) + ["test"]*len(test_list) + ["validation"]*len(val_list)
 
-    # The above "region growing" does not work for small holes
-    # repair by comparing these holes with the holes in the eroded vegetation mask
+out_dir = "C:/Users/anjonas/PycharmProjects/SegVeg/data/2"
 
-    # binarize and invert
-    bin = np.uint8(np.where(ffinal != 0, 255, 0))
-    bin = np.bitwise_not(bin)
+# move images
+for ele, key in zip(lst, lst_key):
+    name = os.path.basename(ele)
+    img_id = name.split("_")[:2]
+    img_id = "_".join(img_id)
+    patch_id = name.split("_")[3]
+    destination = f'{out_dir}/{key}/{name}'
+    img = imageio.imread(ele)
+    img_resized = cv2.resize(img, (700, 700), interpolation=cv2.INTER_LINEAR)
+    imageio.imwrite(destination, img_resized)
+    mask = imageio.imread(f'{out_dir_masks}/{img_id}_{patch_id}_mask.png')
+    mask_resized = cv2.resize(mask, (700, 700), interpolation=cv2.INTER_NEAREST)
+    mask_name = name.replace(".png", "_mask.png")
+    destination_mask = f'{out_dir}/{key}/{mask_name}'
+    imageio.imwrite(destination_mask, mask_resized)
 
-    mask_inverted = np.bitwise_not(mask_erode)
-    n, lab, st, cent = cv2.connectedComponentsWithStats(mask_inverted)
-    mask_sizefiltered = utils.filter_objects_size(mask_inverted, size_th=500, dir="greater")
 
-    # holes present in the eroded mask, but not in the dilated one used before
-    diff_mask = np.bitwise_and(bin, mask_sizefiltered)
 
-    # paste the original content of the holes onto empty image
-    _, l, _, _ = cv2.connectedComponentsWithStats(mask_sizefiltered)
-    img2_ = np.zeros_like(img)
-    idx = np.where(l != 0)
-    img2_[idx] = img[idx]
 
-    # convert to gray scale as done for the rest of the soil background
-    # and combine with the previous soil intensity image
-    soil_gray2 = cv2.cvtColor(img2_, cv2.COLOR_RGB2GRAY)
-    soil_gray2 = soil_gray2 / soil_gray2.max()
-    soil_gray2 = np.where(diff_mask == 255, soil_gray2, ffinal)
 
-    # final post-processing
-    final_soil_gray = scipy.ndimage.percentile_filter(np.uint8(soil_gray2 * 255),
-                                                      percentile=60, size=7, mode='reflect')
-    final_soil_gray = final_soil_gray / 255
 
-    # adjust intensity of each color channel of the new soil image according to the patterns observed
-    # on the original soil patch
-    for new_soil in new_soils:
 
-        soil_name = os.path.basename(new_soil)
-        soil = imageio.imread(new_soil)
-        r, g, b = cv2.split(soil[:2400, :2400, :3])
-        r_ = r * final_soil_gray
-        g_ = g * final_soil_gray
-        b_ = b * final_soil_gray
-        img_ = cv2.merge((r_, g_, b_))
-        img_ = np.uint8(img_)
 
-        # ==============================================================================================================
 
-        # overlay eroded plant mask to the created soil background
-        transparency = np.ones_like(img_[:, :, 0]) * 255
-        transparency[np.where(mask_erode == 255)] = 0
-        img_final = np.dstack([img_, transparency])
-        final = PIL.Image.fromarray(np.uint8(img_final))
-        final = final.convert("RGBA")
-        img2 = PIL.Image.fromarray(np.uint8(img))
-        img2.paste(final, (0, 0), final)
-        final_patch = np.asarray(img2)
 
-        # ==============================================================================================================
+    img_name = os.path.basename(ele)
+    id = img_name.split("_")[:2]
+    id = "_".join(id)
+    all = [element for element in train_list if id in element]
+    mask = imageio.imread(f'{dir_masks}/{id}_mask.png')
+    # binarize mask
+    mask = utils.binarize_mask(mask)
+    mask_tiles = utils.image_tiler(mask, stride=1200)
+    for i in range(1, 5):
+        d = [element for element in all if f'_{i}_' in element]
 
-        # remove last remaining holes between soil and eroded plant mask
-        # get remaining holes and dilate them
-        mmm = np.zeros_like(final_patch)
-        idx = np.where(np.all(final_patch == 0, axis=-1))
-        mmm[idx] = [255, 255, 255]
-        mmm = mmm[:, :, 0]
-        kernel = np.ones((4, 4), np.uint8)
-        mmm_d = cv2.dilate(mmm, kernel)
-        filter_mask = np.dstack([mmm_d, mmm_d, mmm_d])
+# ======================================================================================================================
 
-        # blur the final image and multiply with the hole mask
-        bblurred = cv2.blur(final_patch, (10, 10)) * filter_mask
-        hole_filler = bblurred * np.dstack([mmm, mmm, mmm])
-
-        # fill the holes
-        filled_holes = final_patch + hole_filler
-
-        # ==============================================================================================================
-
-        # blur edges
-        edge_mask_thin = np.zeros_like(mask_erode)
-        edge_mask = np.zeros_like(mask_erode)
-        contours, hier = cv2.findContours(mask_erode, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_NONE)
-        for c in contours:
-            cv2.drawContours(edge_mask, c, -1, color=1, thickness=6)
-            cv2.drawContours(edge_mask_thin, c, -1, color=1, thickness=3)
-
-        # blur the final image and multiply with the hole mask
-        blurred_edges = cv2.blur(filled_holes, (3, 3)) * np.dstack([edge_mask, edge_mask, edge_mask])
-
-        # replace "original" edges with blurred edges
-        idx = np.where(edge_mask_thin == 1)
-        filled_holes[idx] = blurred_edges[idx]
-
-        img_name = f'{stem_name}_{soil_name}'
-        snyth_img_path = Path(f'{out_dir}/{soil_image_type}')
-        snyth_img_path.mkdir(parents=True, exist_ok=True)
-
-        synth_image = filled_holes
-
-        synth_img_name = snyth_img_path / img_name
-        imageio.imwrite(synth_img_name, synth_image)
-
-        # # blur image
-        if smoothing:
-            synth_image = cv2.blur(filled_holes, (2, 2))
-        plt.imshow(synth_image)
-        #     x, y = synth_image.shape[:2]
-        #     x_new = int(np.ceil(x / 4 * 3))
-        #     y_new = int(np.ceil(y / 4 * 3))
-        #     synth_image = cv2.resize(synth_image, (y_new, x_new), interpolation=cv2.INTER_LINEAR)
-        #     mask_res = cv2.resize(mask_0, (y_new, x_new), interpolation=cv2.INTER_NEAREST)
-
+# # ======================================================================================================================
+#
+# # for direct evaluation
+#
+# directory = "Z:/Public/Jonas/Data/ESWW006/images_trainset/Output/synthetic_images"
+# dir_masks = "Z:/Public/Jonas/Data/ESWW006/images_trainset/Output/annotations_manual/all"
+# images = glob.glob(f'{directory}/*.png')
+#
+# out_dir = "C:/Users/anjonas/PycharmProjects/SegVeg/data"
+#
+# image_id = []
+# for im in images:
+#     base_name = os.path.basename(im).split("_")
+#     base_name = "_".join(base_name[:2])
+#     image_id.append(base_name)
+# image_id = np.unique(image_id).tolist()
+#
+# train = random.sample(image_id, k=61)
+# test_val = [item for item in image_id if item not in train]
+# test = random.sample(test_val, k=10)
+# val = [item for item in test_val if item not in test]
+#
+# for im in val:
+#     all_ims = glob.glob(f'{directory}/{im}*.png')
+#     for i in all_ims:
+#         img = imageio.imread(i)
+#         img_name = os.path.basename(i)
+#         mask = imageio.imread(f'{dir_masks}/{im}_mask.png')
+#         # binarize mask
+#         mask = utils.binarize_mask(mask)
+#         tiles = utils.image_tiler(img, stride=1200)
+#         mask_tiles = utils.image_tiler(mask, stride=1200)
+#         for j in range(len(tiles)):
+#             # resize to 700x700 pixels
+#             img_patch_resized = cv2.resize(tiles[j], (700, 700), interpolation=cv2.INTER_LINEAR)
+#             mask_patch_resized = cv2.resize(mask_tiles[j], (700, 700), interpolation=cv2.INTER_NEAREST)
+#             out_name = img_name.replace(".png", f"_{j+1}.png")
+#             imageio.imwrite(f"{out_dir}/val/{out_name}", img_patch_resized)
+#             out_name = img_name.replace(".png", f"_{j+1}_mask.png")
+#             imageio.imwrite(f"{out_dir}/val/{out_name}", mask_patch_resized)
+#
+#
+# # real images
+# dir = "Z:/Public/Jonas/Data/ESWW006/images_trainset/Output/annotations_manual/real_images"
+# out_dir = "C:/Users/anjonas/PycharmProjects/SegVeg/data"
+#
+# all_patches = glob.glob(f'{dir}/JPEGImages/*.png')
+#
+# for p in all_patches:
+#     img = imageio.imread(p)
+#     img_name = os.path.basename(p)
+#     mask_name = img_name.replace(".png", "_mask.png")
+#     mask = imageio.imread(f'{dir}/SegmentationClass/{img_name}')
+#     # binarize mask
+#     mask = utils.binarize_mask(mask)
+#     imageio.imwrite(f"{out_dir}/val_ext/{img_name}", img)
+#     imageio.imwrite(f"{out_dir}/val_ext/{mask_name}", mask)
+#
+#
+#
+# fig, axs = plt.subplots(1, 2, sharex=True, sharey=True)
+# axs[0].imshow(tiles[0])
+# axs[0].set_title('img')
+# axs[1].imshow(mask_tiles[0])
+# axs[1].set_title('orig_mask')
+# plt.show(block=True)
+#
+#
+# # ======================================================================================================================
+#
+# # inference
+#
+# path = "C:/Users/anjonas/PycharmProjects/SegVeg/data/test_ext"
+# out_path = "C:/Users/anjonas/PycharmProjects/SegVeg/data/inference"
+#
+# files = glob.glob(f'{path}/*.jpg')
+#
+# for file in files:
+#     img = imageio.imread(file)
+#     img_resized = cv2.resize(img, (700, 700), interpolation=cv2.INTER_LINEAR)
+#     base_name = os.path.basename(file)
+#     out_name = base_name.replace(".jpg", ".png")
+#     imageio.imwrite(f"{out_path}/{out_name}", img_resized)
+#
+# # ======================================================================================================================

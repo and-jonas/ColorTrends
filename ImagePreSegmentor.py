@@ -81,14 +81,14 @@ class ImagePreSegmentor:
         # smooth binary mask
         # TODO optimize the kernel size
         binary_mask = cv2.medianBlur(thresh.astype("uint8"), 7)
-        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
         dilate_th = cv2.dilate(binary_mask, kernel, iterations=1)
 
         # # Plot
         # fig, axs = plt.subplots(1, 2, sharex=True, sharey=True)
-        # axs[0].imshow(binary_mask)
+        # axs[0].imshow(dilate_th)
         # axs[0].set_title('img')
-        # axs[1].imshow(dilate_th)
+        # axs[1].imshow(out_mask)
         # axs[1].set_title('orig_mask')
         # plt.show(block=True)
 

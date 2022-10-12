@@ -127,11 +127,11 @@ import utils
 #
 #         # save output
 #         patch_name = patch_dir / image_png_name
-#         imageio.imwrite(checker_name, checker_img)
-#         imageio.imwrite(patch_name, img_crop)
+#         # imageio.imwrite(checker_name, checker_img)
+#         # imageio.imwrite(patch_name, img_crop)
 #
 # # ======================================================================================================================
-# # (2) copy training patches from each date into a single directory for further processing
+# # (2) copy patches from each date into a single directory for further processing
 # # ======================================================================================================================
 #
 # parent_dir = Path("Z:/Public/Jonas/Data/ESWW006/Images_trainset")
@@ -158,182 +158,181 @@ import utils
 # Date: 15.03.2021
 # Sample training data blue background removal
 # ======================================================================================================================
-#
-#
-# from roi_selector import TrainingPatchSelector
-#
-#
-# def run():
-#     # dir_to_process = "Z:/Public/Jonas/Data/ESWW006/Images_trainset/Patches"
-#     dir_to_process = "Z:/Public/Jonas/Data/ESWW006/Images_trainset/segmentationTraining"
-#     dir_positives = "Z:/Public/Jonas/Data/ESWW006/Images_trainset/foreground"
-#     dir_negatives = "Z:/Public/Jonas/Data/ESWW006/Images_trainset/background"
-#     dir_control = "Z:/Public/Jonas/Data/ESWW006/Images_trainset/checkers"
-#     roi_selector = TrainingPatchSelector(dir_to_process, dir_positives, dir_negatives, dir_control)
-#     roi_selector.iterate_images()
-#
-#
-# if __name__ == '__main__':
-#     run()
-#
-# # ======================================================================================================================
-#
-# # ======================================================================================================================
-# # Author: Jonas Anderegg, jonas.anderegg@usys.ethz.ch
-# # Extract training data from labelled patches and train segmentation algorithm
-# # Last modified: 2021-11-10
-# # ======================================================================================================================
-#
-# from pathlib import Path
-# import pickle
-# import numpy as np
-# import pandas as pd
-# import glob
-# from sklearn.ensemble import RandomForestClassifier
-# from sklearn.model_selection import RandomizedSearchCV  # Number of trees in random forest
-# from sklearn.model_selection import GridSearchCV  # Create the parameter grid based on the results of random search
-# import SegmentationFunctions
-#
-# import imageio
-# import matplotlib
-# matplotlib.use('Qt5Agg')
-# import matplotlib.pyplot as plt
-#
-# import cv2
-#
-# # ======================================================================================================================
-# # (1) extract features and save to .csv
-# # ======================================================================================================================
-#
-# workdir = 'Z:/Public/Jonas/Data/ESWW006/Images_trainset'
-#
-# # set directories to previously selected training patches
-# dir_positives = f'{workdir}/foreground'
-# dir_negatives = f'{workdir}/background'
-#
-# # extract feature data for all pixels in all patches
-# # output is stores in .csv files in the same directories
-# SegmentationFunctions.iterate_patches_dirs(dir_positives, dir_negatives)
-#
-# # ======================================================================================================================
-# # (2) combine training data from all patches into single file
-# # ======================================================================================================================
-#
-# # import all training data
-# # get list of files
-# files_pos = glob.glob(f'{dir_positives}/*.csv')
-# files_neg = glob.glob(f'{dir_negatives}/*.csv')
-# all_files = files_pos + files_neg
-#
-# # load data
-# train_data = []
-# for i, file in enumerate(all_files):
-#     print(i)
-#     data = pd.read_csv(file)
-#     data = data.iloc[::10, :]  # only keep every 10th pixel of the patch
-#     # data_mean = data.mean().to_frame().T
-#     # data_mean['response'] = data['response'][0]
-#     # train_data.append(data_mean)
-#     train_data.append(data)
-# # to single df
-# train_data = pd.concat(train_data)
-# # export, this may take a while
-# train_data.to_csv(f'{workdir}/training_data.csv', index=False)
-#
-# # ======================================================================================================================
-# # (3) train random forest classifier
-# # ======================================================================================================================
-#
-# train_data = pd.read_csv(f'{workdir}/training_data.csv')
-#
-# # OPTIONAL: sample an equal number of rows per class for training
-# n_pos = train_data.groupby('response').count().iloc[0, 0]
-# n_neg = train_data.groupby('response').count().iloc[1, 0]
-# n_min = min(n_pos, n_neg)
-# train_data = train_data.groupby(['response']).apply(lambda grp: grp.sample(n=n_min))
 
-# n_estimators = [int(x) for x in np.linspace(start=20, stop=200, num=10)]
-# # Number of features to consider at every split
-# max_features = ['auto', 'sqrt']
-# # Maximum number of levels in tree
-# max_depth = [int(x) for x in np.linspace(10, 110, num=11)]
-# max_depth.append(None)
-# # Minimum number of samples required to split a node
-# min_samples_split = [2, 5, 10]
-# # Minimum number of samples required at each leaf node
-# min_samples_leaf = [1, 2, 4, 8]
-# # Method of selecting samples for training each tree
-# bootstrap = [True, False]  # Create the random grid
-# random_grid = {'n_estimators': n_estimators,
-#                'max_features': max_features,
-#                'max_depth': max_depth,
-#                'min_samples_split': min_samples_split,
-#                'min_samples_leaf': min_samples_leaf,
-#                'bootstrap': bootstrap}
-#
-#
-# # Use the random grid to search for best hyperparameters
-# # First create the base model to tune
-# rf = RandomForestClassifier()
-# # Random search of parameters, using 3 fold cross validation,
-# # search across 100 different combinations, and use all available cores
-# rf_random = RandomizedSearchCV(estimator=rf,
-#                                param_distributions= random_grid,
-#                                n_iter=100, cv=10,
-#                                verbose=3, random_state=42,
-#                                n_jobs=-1)  # Fit the random search model
-#
-# # predictor matrix
-# X = np.asarray(train_data)[:, 0:21]
-# # response vector
-# y = np.asarray(train_data)[:, 21]
-#
-# model = rf_random.fit(X, y)
-# rf_random.best_params_
-# best_random = rf_random.best_estimator_
-#
-# param_grid = {
-#     'bootstrap': [False],
-#     'max_depth': [30, 40, 50, 60],
-#     'max_features': [2, 4, 6, 8, 10],
-#     'min_samples_leaf': [2, 4, 6, 8],
-#     'min_samples_split': [8, 10, 12],
-#     'n_estimators': [30, 40, 50, 60]
-# }
-# # Create a based model
-# rf = RandomForestClassifier()  # Instantiate the grid search model
-# grid_search = GridSearchCV(estimator=rf, param_grid=param_grid,
-#                            cv=10, n_jobs=-1, verbose=3)
-#
-# # Fit the grid search to the data
-# grid_search.fit(X, y)
-# grid_search.best_params_
-#
-# # specify model hyper-parameters
-# clf = RandomForestClassifier(
-#     max_depth=100,  # maximum depth of 95 decision nodes for each decision tree
-#     max_features=8,  # maximum of 6 features (channels) are considered when forming a decision node
-#     min_samples_leaf=6,  # minimum of 6 samples needed to form a final leaf
-#     min_samples_split=10,  # minimum 4 samples needed to create a decision node
-#     n_estimators=20,  # maximum of 55 decision trees
-#     bootstrap=False,  # don't reuse samples
-#     random_state=1,
-#     n_jobs=-1
-# )
-#
-# # fit random forest
-# model = clf.fit(X, y)
-# score = model.score(X, y)
-#
-# # save model
-# path = f'{workdir}/Output/Models'
-# if not Path(path).exists():
-#     Path(path).mkdir(parents=True, exist_ok=True)
-# pkl_filename = f'{path}/rf_segmentation_v2.pkl'
-# with open(pkl_filename, 'wb') as file:
-#     pickle.dump(model, file)
-#
-#
+
+from roi_selector import TrainingPatchSelector
+
+
+def run():
+    # dir_to_process = "Z:/Public/Jonas/Data/ESWW006/Images_trainset/Patches"
+    dir_to_process = "Z:/Public/Jonas/Data/ESWW006/Images_trainset/PatchSets/11/patches"
+    dir_positives = "Z:/Public/Jonas/Data/ESWW006/Images_trainset/segmentationTraining/11/foreground"
+    dir_negatives = "Z:/Public/Jonas/Data/ESWW006/Images_trainset/segmentationTraining/11/background"
+    dir_control = "Z:/Public/Jonas/Data/ESWW006/Images_trainset/segmentationTraining/11/checkers"
+    roi_selector = TrainingPatchSelector(dir_to_process, dir_positives, dir_negatives, dir_control)
+    roi_selector.iterate_images()
+
+
+if __name__ == '__main__':
+    run()
+
+# ======================================================================================================================
+
+# ======================================================================================================================
+# Author: Jonas Anderegg, jonas.anderegg@usys.ethz.ch
+# Extract training data from labelled patches and train segmentation algorithm
+# Last modified: 2021-11-10
+# ======================================================================================================================
+
+from pathlib import Path
+import pickle
+import numpy as np
+import pandas as pd
+import glob
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import RandomizedSearchCV  # Number of trees in random forest
+from sklearn.model_selection import GridSearchCV  # Create the parameter grid based on the results of random search
+import SegmentationFunctions
+
+import imageio
+import matplotlib
+matplotlib.use('Qt5Agg')
+import matplotlib.pyplot as plt
+
+import cv2
+
+# ======================================================================================================================
+# (1) extract features and save to .csv
+# ======================================================================================================================
+
+workdir = 'Z:/Public/Jonas/Data/ESWW006/Images_trainset/segmentationTraining/11'
+
+# set directories to previously selected training patches
+dir_positives = f'{workdir}/foreground'
+dir_negatives = f'{workdir}/background'
+
+# extract feature data for all pixels in all patches
+# output is stores in .csv files in the same directories
+SegmentationFunctions.iterate_patches_dirs(dir_positives, dir_negatives)
+
+# ======================================================================================================================
+# (2) combine training data from all patches into single file
+# ======================================================================================================================
+
+# import all training data
+# get list of files
+files_pos = glob.glob(f'{dir_positives}/*.csv')
+files_neg = glob.glob(f'{dir_negatives}/*.csv')
+all_files = files_pos + files_neg
+
+# load data
+train_data = []
+for i, file in enumerate(all_files):
+    print(i)
+    data = pd.read_csv(file)
+    data = data.iloc[::10, :]  # only keep every 10th pixel of the patch
+    # data_mean = data.mean().to_frame().T
+    # data_mean['response'] = data['response'][0]
+    # train_data.append(data_mean)
+    train_data.append(data)
+# to single df
+train_data = pd.concat(train_data)
+# export, this may take a while
+train_data.to_csv(f'{workdir}/training_data.csv', index=False)
+
+# ======================================================================================================================
+# (3) train random forest classifier
+# ======================================================================================================================
+
+train_data = pd.read_csv(f'{workdir}/training_data.csv')
+
+# OPTIONAL: sample an equal number of rows per class for training
+n_pos = train_data.groupby('response').count().iloc[0, 0]
+n_neg = train_data.groupby('response').count().iloc[1, 0]
+n_min = min(n_pos, n_neg)
+train_data = train_data.groupby(['response']).apply(lambda grp: grp.sample(n=n_min))
+
+# # n_estimators = [int(x) for x in np.linspace(start=20, stop=200, num=10)]
+# # # Number of features to consider at every split
+# # max_features = ['auto', 'sqrt']
+# # # Maximum number of levels in tree
+# # max_depth = [int(x) for x in np.linspace(10, 110, num=11)]
+# # max_depth.append(None)
+# # # Minimum number of samples required to split a node
+# # min_samples_split = [2, 5, 10]
+# # # Minimum number of samples required at each leaf node
+# # min_samples_leaf = [1, 2, 4, 8]
+# # # Method of selecting samples for training each tree
+# # bootstrap = [True, False]  # Create the random grid
+# # random_grid = {'n_estimators': n_estimators,
+# #                'max_features': max_features,
+# #                'max_depth': max_depth,
+# #                'min_samples_split': min_samples_split,
+# #                'min_samples_leaf': min_samples_leaf,
+# #                'bootstrap': bootstrap}
+# #
+# #
+# # # Use the random grid to search for best hyperparameters
+# # # First create the base model to tune
+# # rf = RandomForestClassifier()
+# # # Random search of parameters, using 3 fold cross validation,
+# # # search across 100 different combinations, and use all available cores
+# # rf_random = RandomizedSearchCV(estimator=rf,
+# #                                param_distributions= random_grid,
+# #                                n_iter=100, cv=10,
+# #                                verbose=3, random_state=42,
+# #                                n_jobs=-1)  # Fit the random search model
+# #
+# predictor matrix
+X = np.asarray(train_data)[:, 0:21]
+# response vector
+y = np.asarray(train_data)[:, 21]
+# #
+# # model = rf_random.fit(X, y)
+# # rf_random.best_params_
+# # best_random = rf_random.best_estimator_
+# #
+# # param_grid = {
+# #     'bootstrap': [False],
+# #     'max_depth': [30, 40, 50, 60],
+# #     'max_features': [2, 4, 6, 8, 10],
+# #     'min_samples_leaf': [2, 4, 6, 8],
+# #     'min_samples_split': [8, 10, 12],
+# #     'n_estimators': [30, 40, 50, 60]
+# # }
+# # # Create a based model
+# # rf = RandomForestClassifier()  # Instantiate the grid search model
+# # grid_search = GridSearchCV(estimator=rf, param_grid=param_grid,
+# #                            cv=10, n_jobs=-1, verbose=3)
+# #
+# # # Fit the grid search to the data
+# # grid_search.fit(X, y)
+# # grid_search.best_params_
+# #
+# specify model hyper-parameters
+clf = RandomForestClassifier(
+    max_depth=100,  # maximum depth of 95 decision nodes for each decision tree
+    max_features=8,  # maximum of 6 features (channels) are considered when forming a decision node
+    min_samples_leaf=6,  # minimum of 6 samples needed to form a final leaf
+    min_samples_split=10,  # minimum 4 samples needed to create a decision node
+    n_estimators=20,  # maximum of 55 decision trees
+    bootstrap=False,  # don't reuse samples
+    random_state=1,
+    n_jobs=-1
+)
+
+# fit random forest
+model = clf.fit(X, y)
+score = model.score(X, y)
+
+# save model
+path = f'{workdir}/Output/Models'
+if not Path(path).exists():
+    Path(path).mkdir(parents=True, exist_ok=True)
+pkl_filename = f'{path}/rf_segmentation_v0.pkl'
+with open(pkl_filename, 'wb') as file:
+    pickle.dump(model, file)
+
 # # ======================================================================================================================
 # # (5) Get a tile of equal size from each patch
 # # ======================================================================================================================
@@ -379,9 +378,9 @@ from ImagePreSegmentor import ImagePreSegmentor
 
 
 def run():
-    dir_to_process = f'{workdir}/RectPatches'
-    dir_output = f'{workdir}/Output'
-    dir_model = f'{workdir}/Output/Models/rf_segmentation_v1.pkl'
+    dir_to_process = f'{workdir}/PatchSets/11/patches'
+    dir_output = f'{workdir}/PatchSets/11/Output'
+    dir_model = f'{workdir}/segmentationTraining/11/Output/Models/rf_segmentation_v0.pkl'
     image_pre_segmentor = ImagePreSegmentor(dir_to_process=dir_to_process,
                                             dir_model=dir_model,
                                             dir_output=dir_output,
@@ -393,32 +392,166 @@ def run():
 if __name__ == "__main__":
     run()
 
+# ======================================================================================================================
+# 5. Create CVAT back-up
+# ======================================================================================================================
+
+from cvat_integration import BackupCreator
+
+
+workdir = 'Z:/Public/Jonas/Data/ESWW006/Images_trainset/PatchSets/11'
+
+
+def run():
+    dir_images = f"{workdir}/patches_adj_exp"
+    dir_masks = f"{workdir}/Output/Mask"
+    dir_output = f"{workdir}/cvat_pseudo_backup"
+    name = "cvat_pseudo_backup"
+    img_type = ".JPG"
+    backup_creator = BackupCreator(dir_images=dir_images,
+                                   dir_masks=dir_masks,
+                                   dir_output=dir_output,
+                                   name=name,
+                                   img_type=img_type)
+    backup_creator.create()
+
+
+if __name__ == "__main__":
+    run()
 # # ======================================================================================================================
-# # 5. Create CVAT back-up
+# # 6. Show manually corrected annotations
 # # ======================================================================================================================
 #
-# from cvat_integration import BackupCreator
+# annotation_path = Path("Z:/Public/Jonas/Data/ESWW006/Images_trainset/Output/annotations_manual")
+# image_path = Path("Z:/Public/Jonas/Data/ESWW006/Images_trainset/RectPatches")
 #
-# workdir = 'Z:/Public/Jonas/Data/ESWW006/Images_trainset'
+# mask_paths = glob.glob(f'{annotation_path}/*[0-9]/SegmentationClass/*.png')
 #
+# for p in mask_paths:
+#     base_name = os.path.basename(p)
+#     jpg_name = base_name.replace(".png", ".JPG")
+#     im_path = image_path / jpg_name
 #
-# def run():
-#     dir_images = f"{workdir}/RectPatches"
-#     dir_masks = f"{workdir}/Output/Mask"
-#     dir_output = f"{workdir}/cvat_backup"
-#     name = "cvat_backup"
-#     img_type = ".JPG"
-#     backup_creator = BackupCreator(dir_images=dir_images,
-#                                    dir_masks=dir_masks,
-#                                    dir_output=dir_output,
-#                                    name=name,
-#                                    img_type=img_type)
-#     backup_creator.create()
+#     mask = imageio.imread(p)
+#     mask_binary = utils.binarize_mask(mask)
+#     # mask_binary = np.bitwise_not(mask_binary)
+#     contours, _ = cv2.findContours(mask_binary, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
 #
+#     image = imageio.imread(im_path)
+#     im_overlay = copy.copy(image)
+#     for c in contours:
+#         cv2.drawContours(im_overlay, c, -1, color=(255, 0, 0), thickness=2)
 #
-# if __name__ == "__main__":
-#     run()
+#     plt.imshow(im_overlay)
 #
+# # ======================================================================================================================
+# # 6. Extract soil patches (deprecated)
+# # ======================================================================================================================
+#
+# import utils
+# from importlib import reload
+# reload(utils)
+# import pandas as pd
+#
+# paths = glob.glob("Z:/Public/Jonas/Data/ESWW006/Images_trainset/*/JPEG/*.JPG")
+# parent_dir = Path("Z:/Public/Jonas/Data/ESWW006/Images_trainset")
+# meas_events = [x for x in os.listdir(parent_dir) if x.startswith("2022_")][20:]
+#
+# # loop over measurement events
+# for event in meas_events:
+#
+#     print(event)
+#
+#     # prepare workspace
+#     dir_event = parent_dir / event
+#     dir_event_soil = glob.glob(f"{dir_event}/soil*")
+#
+#     for d in dir_event_soil:
+#
+#         output_dir = Path(d) / "Processed"
+#         checker_dir = output_dir / "CheckImages"
+#         patch_dir = output_dir / "SoilPatches"
+#         output_dir.mkdir(parents=True, exist_ok=True)
+#         checker_dir.mkdir(parents=True, exist_ok=True)
+#         patch_dir.mkdir(parents=True, exist_ok=True)
+#
+#         # get all image paths
+#         soil_image_paths = glob.glob(f'{dir_event}/JPEG/{os.path.basename(d)}/*.JPG')  # rejects the plot images
+#
+#         # loop over soil images
+#         for soil_path in soil_image_paths:
+#
+#             image_name = os.path.basename(soil_path)
+#             image_png_name = image_name.replace(".JPG", ".png")
+#
+#             image_original = cv2.imread(soil_path)
+#             image_original = cv2.cvtColor(image_original, cv2.COLOR_BGR2RGB)
+#
+#             soil_patch, coordinates = utils.get_soil_patch(image_original, size=(2400, 2400))
+#             plt.imshow(soil_patch)
+#             x1, x2, y1, y2 = coordinates
+#             imageio.imwrite(original_patch_name, soil_patch)
+#             coordinates = list(coordinates)
+#             df = pd.DataFrame([coordinates])
+#             df2 = df.set_axis(['x1', 'x2', 'y1', 'y2'], axis=1, inplace=False)
+#             csv_namer = str(corrected_patch_name).replace(".png", ".csv")
+#             df2.to_csv(csv_namer, index=False)
+
+#             # get reference
+#             target = plant_path
+#             pseudo_out_dir = "Z:/Public/Jonas/Data/ESWW006/Images_trainset/ColCorr"
+#
+#             # ==============================================================================================================
+#             # COLOR CORRECTION
+#             # ==============================================================================================================
+#
+#             corrected_patch_dir = patch_dir / plant_image_name / "Corrected"
+#             original_patch_dir = patch_dir / plant_image_name / "Original"
+#             corrected_patch_dir.mkdir(parents=True, exist_ok=True)
+#             original_patch_dir.mkdir(parents=True, exist_ok=True)
+#
+#             corrected_patch_name = corrected_patch_dir / image_png_name
+#             original_patch_name = original_patch_dir / image_png_name
+#
+#             if os.path.exists(original_patch_name):
+#                 print("-- output exists - skipping...")
+#                 continue
+#             try:
+#                 image_corrected = utils.color_correction(filename_target=target,
+#                                                          filename_source=soil_path,
+#                                                          output_directory=pseudo_out_dir)
+#             except RuntimeError:
+#                 soil_patch, coordinates = utils.get_soil_patch(image_original, size=(2400, 2400))
+#                 x1, x2, y1, y2 = coordinates
+#                 imageio.imwrite(original_patch_name, soil_patch)
+#                 coordinates = list(coordinates)
+#                 df = pd.DataFrame([coordinates])
+#                 df2 = df.set_axis(['x1', 'x2', 'y1', 'y2'], axis=1, inplace=False)
+#                 csv_namer = str(corrected_patch_name).replace(".png", ".csv")
+#                 df2.to_csv(csv_namer, index=False)
+#                 continue
+#
+#             # ==============================================================================================================
+#             # SOIL PATCH EXTRACTION
+#             # ==============================================================================================================
+#
+#             image_corrected_cut = image_corrected[:4500, :, :]
+#             soil_patch, coordinates = utils.get_soil_patch(image_original, size=(2400, 2400))
+#             x1, x2, y1, y2 = coordinates
+#             soil_patch_corrected = image_corrected_cut[y1:y2, x1:x2, :]
+#
+#             # save output
+#             imageio.imwrite(corrected_patch_name, soil_patch_corrected)
+#             imageio.imwrite(original_patch_name, soil_patch)
+#             coordinates = list(coordinates)
+#             df = pd.DataFrame([coordinates])
+#             df2 = df.set_axis(['x1', 'x2', 'y1', 'y2'], axis=1, inplace=False)
+#             csv_namer = str(corrected_patch_name).replace(".png", ".csv")
+#             df2.to_csv(csv_namer, index=False)
+#             csv_namer = str(original_patch_name).replace(".png", ".csv")
+#             df2.to_csv(csv_namer, index=False)
+#
+# # ======================================================================================================================
 #
 # # ======================================================================================================================
 # # 6. Extract soil patches
@@ -522,4 +655,4 @@ if __name__ == "__main__":
 #             df2.to_csv(csv_namer, index=False)
 #
 # # ======================================================================================================================
-
+#

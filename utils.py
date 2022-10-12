@@ -60,7 +60,7 @@ def sample_random_patch(img, size, obstruction_mask=None):
     checker = False
     checker2 = 0
 
-    while not checker and checker2 < 6:
+    while not checker and checker2 < 50:
 
         # randomly select a patch
         y1 = random.randrange(0, img.shape[0]-size[0])
@@ -74,13 +74,17 @@ def sample_random_patch(img, size, obstruction_mask=None):
                 checker = False
             else:
                 checker = True
+        else:
+            checker = True
 
         checker2 += 1
 
-    img_patch = img[y1:y2, x1:x2, :]
-    coordinates = (x1, x2, y1, y2)
-
-    return img_patch, coordinates
+    if not checker:
+        return None, None
+    else:
+        img_patch = img[y1:y2, x1:x2, :]
+        coordinates = (x1, x2, y1, y2)
+        return img_patch, coordinates
 
 
 def sample_patch_from_corner(image, patch_size=2400):
@@ -196,10 +200,11 @@ def get_soil_patch(image, size):
     mask_shadows = filter_objects_size(mask, 25000, "smaller")
 
     # detect metal bars
-    mask = grey > 200
+    thresh = np.percentile(grey, 98.5)
+    mask = grey > thresh
     mask = np.uint8(np.where(mask, 1, 0))
     mask = cv2.medianBlur(mask, 31)
-    mask_bars = filter_objects_size(mask, 25000, "smaller")
+    mask_bars = filter_objects_size(mask, 35000, "smaller")
 
     # combine masks
     combined_mask = mask_veg | mask_shadows | mask_bars
@@ -212,8 +217,37 @@ def get_soil_patch(image, size):
     soil_patch, coordinates = sample_random_patch(image_cut,
                                                   size=size,
                                                   obstruction_mask=combined_mask)
-
     return soil_patch, coordinates
+
+
+def binarize_mask(mask):
+    mask_binary = cv2.cvtColor(mask, cv2.COLOR_RGB2GRAY)
+    mask_binary = np.where(mask_binary == 169, 255, 0).astype("uint8")
+    return mask_binary
+
+
+def image_tiler(image, stride):
+
+    if image.shape[0] % stride == 0 and image.shape[1] % stride == 0:
+        currentx = 0
+        currenty = 0
+        tiles = []
+        while currenty < image.shape[1]:
+            while currentx < image.shape[0]:
+                print(currentx, ",", currenty)
+                tile = image[currentx:currentx + stride, currenty:currenty + stride]
+                # tile = image.crop((currentx, currenty, currentx + stride, currenty + stride))
+                tiles.append(tile)
+                currentx += stride
+            currenty += stride
+            currentx = 0
+
+        return tuple(tiles)
+
+    else:
+        print("sorry your image does not fit neatly into", stride, "*", stride, "tiles")
+
+        return None
 
 
 def sample_patches(image, mask, size):
@@ -242,7 +276,7 @@ def filter_objects_size(mask, size_th, dir):
     :param size_th: The size threshold used to filter (objects GREATER than the threshold will be kept)
     :return: A binary mask containing only objects greater than the specified threshold
     """
-    _, output, stats, _ = cv2.connectedComponentsWithStats(mask, connectivity=8)
+    _, output, stats, _ = cv2.connectedComponentsWithStats(mask, connectivity=4)
     sizes = stats[1:, -1]
     if dir == "greater":
         idx = (np.where(sizes > size_th)[0] + 1).tolist()

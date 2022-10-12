@@ -96,9 +96,9 @@ for path in mask_paths:
 # --> resize to 700*700 px
 # ======================================================================================================================
 
-dir_img = "P:/Public/Jonas/003_ESWW/ColorTrends/train_img_selection/patches_1200"
+dir_img = "P:/Public/Jonas/003_ESWW/ColorTrends/train_img_selection/patches_soil_in_focus"
 # dir_mask = "P:/Public/Jonas/003_ESWW/ColorTrends/train_img_selection/annotations/annotations_1200"
-dir_mask = "P:/Public/Jonas/003_ESWW/ColorTrends/train_img_selection/annotations/annotations_20220406"
+dir_mask = "P:/Public/Jonas/003_ESWW/ColorTrends/train_img_selection/annotations/annotations_20220923"
 dir_to = "P:/Public/Jonas/003_ESWW/ColorTrends/train_img_selection/annotations/all_annotations"
 
 mask_paths = glob.glob(f'{dir_mask}/SegmentationClass/*.png')

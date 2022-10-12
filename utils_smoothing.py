@@ -212,7 +212,7 @@ def smooth_edge_aware(reference, target):
     output_solver = np.uint8(output_solver)
 
     # threshold filtered map
-    thresh = np.where(output_solver <= 175, 0, 1)
+    thresh = np.where(output_solver <= 165, 0, 1)
 
     # # Plot
     # fig, axs = plt.subplots(2, 2, sharex=True, sharey=True)
