@@ -221,8 +221,9 @@ def get_soil_patch(image, size):
 
 
 def binarize_mask(mask):
-    mask_binary = cv2.cvtColor(mask, cv2.COLOR_RGB2GRAY)
-    mask_binary = np.where(mask_binary == 169, 255, 0).astype("uint8")
+    mask_green = mask[:, :, 1]
+    plant_id = np.max(np.unique(mask_green))
+    mask_binary = np.where(mask_green == plant_id, 255, 0).astype("uint8")
     return mask_binary
 
 

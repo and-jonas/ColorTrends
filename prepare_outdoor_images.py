@@ -340,7 +340,6 @@ with open(pkl_filename, 'wb') as file:
 # import pandas as pd
 #
 # workdir = 'Z:/Public/Jonas/Data/ESWW006/Images_trainset'
-#
 # files = glob.glob(f"{workdir}/Patches/*.png")
 #
 # # sample the patches
@@ -368,6 +367,19 @@ with open(pkl_filename, 'wb') as file:
 #         print(" >> output exists - skipping")
 #         continue
 #
+# # get the same tile but as .png
+# for file in files:
+#     img_name = os.path.basename(file)
+#     print(img_name)
+#     stem_name = img_name.replace(".png", "")
+#     csv_name = stem_name + ".csv"
+#     out_name = f"{out_dir}/png/{img_name}"
+#     coords = pd.read_csv(f'{workdir}/RectPatches/Checker/{csv_name}')
+#     x1, x2, y1, y2 = coords.loc[0, :].values.tolist()
+#     img = imageio.imread(file)
+#     patch = img[y1:y2, x1:x2]
+#     imageio.imwrite(out_name, patch)
+
 # ======================================================================================================================
 # (4) segment images
 # ======================================================================================================================
@@ -418,6 +430,7 @@ def run():
 
 if __name__ == "__main__":
     run()
+
 # # ======================================================================================================================
 # # 6. Show manually corrected annotations
 # # ======================================================================================================================
