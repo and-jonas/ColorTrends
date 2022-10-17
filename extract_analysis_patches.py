@@ -15,8 +15,9 @@ from plantcv import plantcv as pcv
 from scipy import ndimage
 import cv2
 import csv
+import copy
 
-out_dir = "Z:/Public/Jonas/Data/ESWW006/ImagesNadir/patches_analysis"
+out_dir = "Z:/Public/Jonas/Data/ESWW006/ImagesNadir"
 in_dir = "Z:/Public/Jonas/Data/ESWW006/ImagesNadir/2022_*/JPEG"
 images = glob.glob(f'{in_dir}/*.JPG')
 images = [item for item in images if "Ref" not in item]
@@ -36,6 +37,7 @@ with open("Z:/Public/Jonas/Data/ESWW006/ImagesNadir/Meta/patch_coordinates.csv",
         source_mask = pcv.transform.create_color_card_mask(img, radius=10, start_coord=start,
                                                            spacing=space, nrows=4, ncols=6)
 
+        # get corner coordinates and write to csv
         binary = np.where(source_mask == 0, 0, 1)
         center = ndimage.center_of_mass(binary)
         x1 = int(center[1]-2250)
@@ -46,14 +48,11 @@ with open("Z:/Public/Jonas/Data/ESWW006/ImagesNadir/Meta/patch_coordinates.csv",
         row = coords
         writer.writerow(row)
 
-    # df = pd.DataFrame([coordinates])
-    # df2 = df.set_axis(['x1', 'x2', 'y1', 'y2'], axis=1, inplace=False)
-    # csv_namer = str(corrected_patch_name).replace(".png", ".csv")
-    # df2.to_csv(csv_namer, index=False)
-    #
-    # x1, x2, y1, y2 = coordinates
-    # imageio.imwrite(original_patch_name, soil_patch)
-    # coordinates = list(coordinates)
-    # df = pd.DataFrame([coordinates])
-
-
+        # create checker image
+        checker = copy.copy(img)
+        cv2.rectangle(checker, (x1, y1), (x2, y2), (255, 0, 0), 9)
+        x_new = int(checker.shape[0]/10)
+        y_new = int(checker.shape[1]/10)
+        checker = cv2.resize(checker, (y_new, x_new), interpolation=cv2.INTER_LINEAR)
+        checker_name = f'{out_dir}/Meta/patch_checkers/{base_name}'
+        imageio.imwrite(checker_name, checker)
