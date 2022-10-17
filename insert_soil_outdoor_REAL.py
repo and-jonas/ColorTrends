@@ -29,6 +29,7 @@ from pathlib import Path
 # mask_dir = f"{path}/masks"
 
 # directories
+
 path = "Z:/Public/Jonas/Data/ESWW006/Images_trainset/"
 out_dir = f"{path}Output/synthetic_images/5"
 plant_dir = f"{path}PatchSets/5/patches"

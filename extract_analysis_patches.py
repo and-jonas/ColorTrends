@@ -40,7 +40,7 @@ with open("Z:/Public/Jonas/Data/ESWW006/ImagesNadir/Meta/patch_coordinates.csv",
         # get corner coordinates and write to csv
         binary = np.where(source_mask == 0, 0, 1)
         center = ndimage.center_of_mass(binary)
-        x1 = int(center[1]-2100)
+        x1 = int(center[1]-2100) # 4000PX X 4000PX patches
         x2 = int(center[1]+1900)
         y1 = 0
         y2 = 4500
