@@ -33,7 +33,7 @@ path = "Z:/Public/Jonas/Data/ESWW006/Images_trainset/"
 out_dir = f"{path}Output/synthetic_images/5"
 plant_dir = f"{path}PatchSets/5/patches"
 mask_dir = f"{path}Output/annotations_manual/5/SegmentationClass"
-soil_paths = glob.glob("Z:/Public/Jonas/Data/ESWW006/Images_trainset/Soil/dir/*.JPG")
+soil_paths = glob.glob("Z:/Public/Jonas/Data/ESWW006/Images_trainset/Soil/dir_dif/*.JPG") # use a mix of direct and diffuse light soil images
 
 # list plant images and masks
 plants = glob.glob(f'{plant_dir}/*.JPG')
