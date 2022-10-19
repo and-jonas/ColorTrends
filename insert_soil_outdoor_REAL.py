@@ -212,13 +212,13 @@ out_dir = "Z:/Public/Jonas/Data/ESWW006/images_trainset/Output/CGAN_input/compos
 trainB = random.sample(images, k=round(len(images)*0.8))
 testB = [item for item in images if item not in trainB]
 
-for im in testB:
+for im in trainB:
     img = imageio.imread(im)
     img_name = os.path.basename(im)
     tiles = utils.image_tiler(img, stride=1200)
     for i, tile in enumerate(tiles):
         out_name = img_name.replace(".png", f"_{i+1}.jpg")
-        imageio.imwrite(f"{out_dir}/testB/{out_name}", tile)
+        imageio.imwrite(f"{out_dir}/trainB/{out_name}", tile)
 
 # ======================================================================================================================
 # RUN THE CYCLE GAN
