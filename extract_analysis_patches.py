@@ -15,6 +15,7 @@ out_dir = "Z:/Public/Jonas/Data/ESWW006/ImagesNadir"
 in_dir = "Z:/Public/Jonas/Data/ESWW006/ImagesNadir/2022_*/JPEG"
 images = glob.glob(f'{in_dir}/*.JPG')
 images = [item for item in images if "Ref" not in item]
+images = images[468:]
 
 # color checker should be more or less centered. Detect color checker and use central coordinates for patch selection.
 for i in images:
@@ -27,16 +28,26 @@ for i in images:
     except:
         dataframe1, start, space = pcv.transform.find_color_card(rgb_img=img, background='dark')
 
-    source_mask = pcv.transform.create_color_card_mask(img, radius=10, start_coord=start,
-                                                       spacing=space, nrows=4, ncols=6)
+    try:
+        source_mask = pcv.transform.create_color_card_mask(img, radius=10, start_coord=start,
+                                                           spacing=space, nrows=4, ncols=6)
+    except RuntimeError:
+        print(f'failed for {base_name}')
+        source_mask = None
 
-    # get corner coordinates and write to csv
-    binary = np.where(source_mask == 0, 0, 1)
-    center = ndimage.center_of_mass(binary)
-    x1 = int(center[1]-2250) # 4000PX X 4000PX patches
-    x2 = int(center[1]+1750)
-    y1 = 0
-    y2 = 4000
+    if source_mask is not None:
+        # get corner coordinates and write to csv
+        binary = np.where(source_mask == 0, 0, 1)
+        center = ndimage.center_of_mass(binary)
+        x1 = int(center[1]-2250) # 4000PX X 4000PX patches
+        x2 = int(center[1]+1750)
+        y1 = 0
+        y2 = 4000
+    else:
+        x1 = 2750
+        x2 = 6750
+        y1 = 0
+        y2 = 4000
     coordinates = list((x1, x2, y1, y2))
     df = pd.DataFrame([coordinates])
     df2 = df.set_axis(['x1', 'x2', 'y1', 'y2'], axis=1, inplace=False)
