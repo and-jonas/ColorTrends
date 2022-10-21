@@ -355,7 +355,7 @@ with open(pkl_filename, 'wb') as file:
 #     check_name = f"{check_dir}/{stem_name}.JPG"
 #     if not os.path.exists(out_name):
 #         img = imageio.imread(file)
-#         patch, coordinates, checker = utils.sample_patch_from_corner(img, 2400)
+#         patch, coordinates, checker, corner = utils.sample_patch_from_corner(img, 2400)
 #         if img.shape[0] >= 2400 and img.shape[1] >= 2400:
 #             imageio.imwrite(out_name, patch)
 #         imageio.imwrite(check_name, checker)

@@ -70,7 +70,7 @@ def sample_random_patch(img, size, obstruction_mask=None):
 
         if obstruction_mask is not None:
             mask_patch = obstruction_mask[y1:y2, x1:x2]
-            if (mask_patch == 1).any():
+            if (mask_patch != 0).any():
                 checker = False
             else:
                 checker = True
@@ -127,7 +127,33 @@ def sample_patch_from_corner(image, patch_size=2400):
     checker = copy.copy(image)
     cv2.rectangle(checker, pt1=(x1, y1), pt2=(x2, y2), color=(255, 0, 0), thickness=5)
 
-    return patch, coordinates, checker
+    return patch, coordinates, checker, corner
+
+
+def sample_patch_chessboard(image, patch_size=2400):
+    """
+    Crops a patch from the image, starting at a random image corner.
+    :param image: the image to crop a patch from
+    :param patch_size: the size of the patch
+    :return: patch, image coordinates of two corners of the patch, a checker image with the rectangle marked
+    """
+
+    size_x, size_y = image.shape[:2]
+    div = int(np.floor(size_x/patch_size))
+    n_patches = div * div
+    stride = patch_size + int((size_x - div*patch_size)/(div-1))
+
+    idx = random.randrange(n_patches)
+    row = int(np.floor(idx / div))
+    pos = idx % div
+
+    p = image[row * stride:row * stride + patch_size, pos * stride:pos * stride + patch_size]
+    c = (row * stride, pos * stride, row * stride + patch_size, pos * stride + patch_size)
+
+    checker = copy.copy(image)
+    cv2.rectangle(checker, pt1=(c[1], c[0]), pt2=(c[3], c[2]), color=(255, 0, 0), thickness=9)
+
+    return p, c, checker, idx
 
 
 def color_correction(filename_target, filename_source, output_directory):
