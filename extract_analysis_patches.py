@@ -18,6 +18,10 @@ import copy
 
 import utils
 
+import shutil
+
+# ======================================================================================================================
+
 out_dir = "Z:/Public/Jonas/Data/ESWW006/ImagesNadir"
 in_dir = "Z:/Public/Jonas/Data/ESWW006/ImagesNadir/2022_*/JPEG"
 images = glob.glob(f'{in_dir}/*.JPG')
@@ -120,4 +124,38 @@ for image in full_names_sel:
     df2 = df.set_axis(['x1', 'x2', 'y1', 'y2'], axis=1, inplace=False)
     df2.to_csv(f'{out_dir}/patches_annotation/coordinates/{stem_name}_{idx}.txt', index=False)
 
+# ======================================================================================================================
+
+import re
+
+# transfer these images to genotype-specific folders for batch-wise annotation
+
+sel = pd.read_csv(f'{out_dir}/Meta/selected_for_annotation.csv')
+gens = list(set(sel["gen_name"].tolist()))
+
+all_patches = glob.glob(f'{out_dir}/patches_annotation/*.png')
+base_name_all_patches = [os.path.basename(x) for x in all_patches]
+stem_name_all_patches = [re.sub("_[0-9].png", "", x) for x in base_name_all_patches]
+
+for gen in gens:
+    data = sel.loc[sel['gen_name'] == gen]
+    images = data["image_ID"].tolist()
+    images = [x.replace(".JPG", "") for x in images]
+
+    # Indices list of matching element from other list
+    res = []
+    i = 0
+    while i < len(stem_name_all_patches):
+        if images.count(stem_name_all_patches[i]) > 0:
+            res.append(i)
+        i += 1
+
+    full_names_sel = [all_patches[i] for i in res]
+
+    to_dir = f'{out_dir}/patches_annotation/{gen}'
+    os.mkdir(to_dir)
+    for file in full_names_sel:
+        out_name = os.path.basename(file)
+        dst_dir = f'{to_dir}/{out_name}'
+        shutil.copy(file, dst_dir)
 
