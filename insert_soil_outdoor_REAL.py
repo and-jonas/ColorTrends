@@ -41,8 +41,6 @@ for b, s in zip(batch_nr, soil_type):
     mask_dir = f"{path}Output/annotations_manual/{b}/SegmentationClass"
     soil_paths = glob.glob(
         f"Z:/Public/Jonas/Data/ESWW006/Images_trainset/Soil/{s}/*.JPG")
-    # randomly select 8 soils per image
-    soil_paths = random.sample(soil_paths, k=8)
 
     # list plant images and masks
     plants = glob.glob(f'{plant_dir}/*.JPG')
@@ -120,11 +118,14 @@ for b, s in zip(batch_nr, soil_type):
 
         # ==============================================================================================================
 
-        # iterate over all soils
-        for soil_path in soil_paths:
+        # randomly select 8 soils per image
+        soils = random.sample(soil_paths, k=10)
 
-            soil_name = os.path.basename(soil_path)
-            soil_image = imageio.imread(soil_path)
+        # iterate over all soils
+        for s in soils:
+
+            soil_name = os.path.basename(s)
+            soil_image = imageio.imread(s)
             soil, coordinates = utils.get_soil_patch(image=soil_image, size=(2400, 2400))
 
             if soil is None:
