@@ -127,6 +127,7 @@ for image in full_names_sel:
 # ======================================================================================================================
 
 import re
+out_dir = "Z:/Public/Jonas/Data/ESWW006/ImagesNadir"
 
 # transfer these images to genotype-specific folders for batch-wise annotation
 
@@ -157,5 +158,5 @@ for gen in gens:
     for file in full_names_sel:
         out_name = os.path.basename(file)
         dst_dir = f'{to_dir}/{out_name}'
-        shutil.copy(file, dst_dir)
+        shutil.move(file, dst_dir)
 
