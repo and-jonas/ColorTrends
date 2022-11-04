@@ -1,18 +1,12 @@
 import os
 import matplotlib as mpl
 import pandas as pd
-
-mpl.use('Qt5Agg')
-import matplotlib.pyplot as plt
 import imageio
 import numpy as np
 import cv2
 import utils
 import PIL
-import copy
 from importlib import reload
-
-reload(utils)
 import glob
 import scipy
 from pathlib import Path
@@ -47,6 +41,8 @@ for b, s in zip(batch_nr, soil_type):
     mask_dir = f"{path}Output/annotations_manual/{b}/SegmentationClass"
     soil_paths = glob.glob(
         f"Z:/Public/Jonas/Data/ESWW006/Images_trainset/Soil/{s}/*.JPG")
+    # randomly select 8 soils per image
+    soil_paths = random.sample(soil_paths, k=8)
 
     # list plant images and masks
     plants = glob.glob(f'{plant_dir}/*.JPG')
