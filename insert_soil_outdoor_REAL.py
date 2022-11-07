@@ -50,8 +50,8 @@ for b, st in zip(batch_nr, soil_type):
     # only process edited ones
     if Path(edited_dir).exists():
         edited_list = pd.read_csv(edited_dir).iloc[:, 0].tolist()
-    plants = [ele for ele in plants if os.path.basename(ele).replace(".JPG", "") in edited_list]
-    masks = [ele for ele in masks if os.path.basename(ele).replace(".png", "") in edited_list]
+        plants = [ele for ele in plants if os.path.basename(ele).replace(".JPG", "") in edited_list]
+        masks = [ele for ele in masks if os.path.basename(ele).replace(".png", "") in edited_list]
 
     # iterate over all plants
     for p, m in zip(plants, masks):
