@@ -28,11 +28,11 @@ import random
 # mask_dir = f"{path}/masks"
 
 # indicate batches and corresponding soil batches
-batch_nr = [1, 2, 3, 4]
-soil_type = ["dif", "dif", "dif", "dir_dif"]
+batch_nr = [10, 11]
+soil_type = ["dir_dif", "dir_dif"]
 
 # iterate over all batches
-for b, s in zip(batch_nr, soil_type):
+for b, st in zip(batch_nr, soil_type):
 
     # directories
     path = "Z:/Public/Jonas/Data/ESWW006/Images_trainset/"
@@ -40,11 +40,18 @@ for b, s in zip(batch_nr, soil_type):
     plant_dir = f"{path}PatchSets/{b}/patches"
     mask_dir = f"{path}Output/annotations_manual/{b}/SegmentationClass"
     soil_paths = glob.glob(
-        f"Z:/Public/Jonas/Data/ESWW006/Images_trainset/Soil/{s}/*.JPG")
+        f"Z:/Public/Jonas/Data/ESWW006/Images_trainset/Soil/{st}/*.JPG")
+    edited_dir = f"{path}PatchSets/{b}/edited.txt"
 
     # list plant images and masks
     plants = glob.glob(f'{plant_dir}/*.JPG')
     masks = glob.glob(f'{mask_dir}/*.png')
+
+    # only process edited ones
+    if Path(edited_dir).exists():
+        edited_list = pd.read_csv(edited_dir).iloc[:, 0].tolist()
+    plants = [ele for ele in plants if os.path.basename(ele).replace(".JPG", "") in edited_list]
+    masks = [ele for ele in masks if os.path.basename(ele).replace(".png", "") in edited_list]
 
     # iterate over all plants
     for p, m in zip(plants, masks):
