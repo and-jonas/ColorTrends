@@ -3,6 +3,7 @@ import cv2
 import random
 from plantcv import plantcv as pcv
 import copy
+import os
 
 
 def random_patch(img, size, frame, random_patch=True):
@@ -420,3 +421,10 @@ def index_TGI(image):
     rTGI = -0.5 * ((lambda_R - lambda_B) * (r - g) - (lambda_R - lambda_G) * (r - b))
 
     return rTGI
+
+def get_plot(name):
+    n = os.path.basename(name).replace(".png", "")
+    id = n.split("_")[0:2]
+    id = "_".join(id)
+    return id
+
