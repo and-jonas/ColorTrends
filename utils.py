@@ -422,6 +422,7 @@ def index_TGI(image):
 
     return rTGI
 
+
 def get_plot(name):
     n = os.path.basename(name).replace(".png", "")
     id = n.split("_")[0:2]

@@ -1,4 +1,5 @@
 import matplotlib
+
 matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
 import os
@@ -29,7 +30,13 @@ import random
 # mask_dir = f"{path}/masks"
 
 # indicate batches and corresponding soil batches
-batch_nr = [10, 11]
+# batch_nr = [1, 2, 3, 4,
+#             5, 6, 7, 8,
+#             10, 11]
+# soil_type = ["dif", "dif", "dif", "dir_dif",
+#              "dir_dif", "dif", "dir_dif", "dir_dif",
+#              "dir_dif", "dir_dif"]
+batch_nr = [8, 10]
 soil_type = ["dir_dif", "dir_dif"]
 
 # iterate over all batches
@@ -42,6 +49,7 @@ for b, st in zip(batch_nr, soil_type):
     mask_dir = f"{path}Output/annotations_manual/{b}/SegmentationClass"
     soil_paths = glob.glob(
         f"Z:/Public/Jonas/Data/ESWW006/Images_trainset/Soil/{st}/*.JPG")
+    mask_out_dir = f"{path}Output/annotations_manual/masks"
     edited_dir = f"{path}PatchSets/{b}/edited.txt"
 
     # list plant images and masks
@@ -50,21 +58,41 @@ for b, st in zip(batch_nr, soil_type):
 
     # only process edited ones
     if Path(edited_dir).exists():
-        edited_list = pd.read_csv(edited_dir).iloc[:, 0].tolist()
+        edited_list = pd.read_csv(edited_dir, header=None).iloc[:, 0].tolist()
         plants = [ele for ele in plants if os.path.basename(ele).replace(".JPG", "") in edited_list]
         masks = [ele for ele in masks if os.path.basename(ele).replace(".png", "") in edited_list]
 
     # iterate over all plants
     for p, m in zip(plants, masks):
 
-        stem_name = os.path.basename(p).replace(".JPG", "")
+        counter = None
+
+        base_name = os.path.basename(p)
+        stem_name = base_name.replace(".JPG", "")
         Plot_ID, date = stem_name.split("_")
+
+        # list already generated comosites
+        if Path(out_dir).exists():
+            existing = glob.glob(f'{out_dir}/*.png')
+            existing = [ele for ele in existing if utils.get_plot(ele) == stem_name]
+
+            # make 10 composites max
+            if len(existing) >= 10:
+                continue
+
+            else:
+                counter = len(existing) - 1
 
         img = imageio.imread(p)
         mask = imageio.imread(m)
+
         # check if mask is binary; binarize if needed
         if not len(mask.shape) == 2:
             mask = utils.binarize_mask(mask)
+        # # save
+        # imageio.imwrite(f"{mask_out_dir}/8bit/{stem_name}_mask.png", mask)
+        # imageio.imwrite(f"{mask_out_dir}/8bit/{base_name}", img)
+        # imageio.imwrite(f"{mask_out_dir}/{base_name}", np.uint8(mask/255))
 
         # erode original mask to get rid of the blueish pixels along plant edges
         mask_erode = cv2.erode(mask, np.ones((2, 2), np.uint8))
@@ -124,13 +152,31 @@ for b, st in zip(batch_nr, soil_type):
                                                           percentile=60, size=7, mode='reflect')
         final_soil_gray = final_soil_gray / 255
 
+        # increase the contrast between shaded and sunlight portions of the background
+        adjusted = np.where(final_soil_gray <= 0.4, final_soil_gray, 1.25 * final_soil_gray - 0.1)
+        adjusted = np.where(adjusted < 0, 0, adjusted)
+        # adjusted = np.where(adjusted > 1, 1, adjusted)
+
+        # fig, axs = plt.subplots(1, 3, sharex=True, sharey=True)
+        # axs[0].imshow(final_soil_gray)
+        # axs[0].set_title('original')
+        # axs[1].imshow(adjusted)
+        # axs[1].set_title('transformed')
+        # axs[2].imshow(img)
+        # axs[2].set_title('image')
+        # plt.show(block=True)
+
         # ==============================================================================================================
 
         # randomly select 8 soils per image
-        soils = random.sample(soil_paths, k=10)
+        soils = random.sample(soil_paths, k=15)
 
         # iterate over all soils
+        counter = counter if counter is not None else 0
         for s in soils:
+
+            if counter == 9:
+                break
 
             soil_name = os.path.basename(s)
             soil_image = imageio.imread(s)
@@ -140,9 +186,9 @@ for b, st in zip(batch_nr, soil_type):
                 continue
 
             r, g, b = cv2.split(soil[:2400, :2400, :3])
-            r_ = r * final_soil_gray
-            g_ = g * final_soil_gray
-            b_ = b * final_soil_gray
+            r_ = r * adjusted
+            g_ = g * adjusted
+            b_ = b * adjusted
             img_ = cv2.merge((r_, g_, b_))
             img_ = np.uint8(img_)
 
@@ -201,6 +247,8 @@ for b, st in zip(batch_nr, soil_type):
             synth_image = filled_holes
             imageio.imwrite(synth_img_name, synth_image)
 
+            counter += 1
+
 # ======================================================================================================================
 
 # divide synthetic images into 4 patches of 1200px x 1200px each
@@ -214,6 +262,7 @@ images = glob.glob(f'{directory}/*.png')
 out_dir = "Z:/Public/Jonas/Data/ESWW006/images_trainset/Output/CGAN_input/composite2real_int"
 Path(out_dir).mkdir(parents=True, exist_ok=True)
 
+
 # OPTIONAL: select n soil scenario
 def get_identifier(file_names):
     ids = []
@@ -223,6 +272,7 @@ def get_identifier(file_names):
         id = "_".join(id)
         ids.append(id)
     return ids
+
 
 df = pd.DataFrame({'name': images})
 df['id'] = get_identifier(images)
@@ -262,6 +312,7 @@ directory = "Z:/Public/Jonas/Data/ESWW006/images_trainset/Output/synthetic_image
 images = glob.glob(f'{directory}/*.png')
 out_dir = "C:/Users/anjonas/PycharmProjects/pytorch-CycleGAN-and-pix2pix/data_predict"
 
+
 # OPTIONAL: select n soil scenario
 def get_identifier(file_names):
     ids = []
@@ -271,6 +322,7 @@ def get_identifier(file_names):
         id = "_".join(id)
         ids.append(id)
     return ids
+
 
 df = pd.DataFrame({'name': images})
 df['id'] = get_identifier(images)
@@ -329,9 +381,9 @@ for o in originals:
     mask = imageio.imread(masks[idx])
     predicted = imageio.imread(o.replace("_real.png", "_fake.png"))
 
-    veg = np.stack([mask, mask, mask], axis=2)*real
-    mask_inv = np.bitwise_not(mask)-254
-    soil = np.stack([mask_inv, mask_inv, mask_inv], axis=2)*predicted
+    veg = np.stack([mask, mask, mask], axis=2) * real
+    mask_inv = np.bitwise_not(mask) - 254
+    soil = np.stack([mask_inv, mask_inv, mask_inv], axis=2) * predicted
 
     composite = veg + soil
 
@@ -359,7 +411,6 @@ for o in originals:
 
     out_name = o.replace("_real.png", "_composite.png")
     imageio.imwrite(out_name, composite)
-
 
 # ======================================================================================================================
 # PREPARE DATA FOR SEGMENTATION TRAINING
@@ -501,16 +552,17 @@ for ele, key in zip(lst, lst_key):
         tiles = utils.image_tiler(img, stride=1200)
         mask_tiles = utils.image_tiler(mask, stride=1200)
         for j in range(len(tiles)):
-            out_name = destination.replace(".png", f"_{j+1}.png")
+            out_name = destination.replace(".png", f"_{j + 1}.png")
             imageio.imwrite(out_name, tiles[j])
-            out_name = mask_destination.replace(".png", f"_{j+1}.png")
+            out_name = mask_destination.replace(".png", f"_{j + 1}.png")
             imageio.imwrite(out_name, mask_tiles[j])
     else:
         shutil.copy(ele, destination)
         destination = f'{out_dir}/{key}/masks/{name}'
         shutil.copy(mask_source, destination)
 
-tester = imageio.imread("C:/Users/anjonas/PycharmProjects/SegVeg/data/combined/train/masks/ESWW0003_20220701_BF0A9737_fake_1.png")
+tester = imageio.imread(
+    "C:/Users/anjonas/PycharmProjects/SegVeg/data/combined/train/masks/ESWW0003_20220701_BF0A9737_fake_1.png")
 
 #
 # # for direct evaluation
@@ -652,7 +704,7 @@ for msk in used:
     base_name_corr = base_name.replace("_mask.png", ".png")
     target = to_dir + "/masks/" + base_name_corr
     mask = imageio.imread(from_dir)
-    mask_bin = (mask/255).astype("uint8")
+    mask_bin = (mask / 255).astype("uint8")
     imageio.imwrite(target, mask_bin)
 
 # ======================================================================================================================
@@ -705,7 +757,7 @@ for msk in used:
     base_name_corr = base_name.replace("_mask.png", ".png")
     target = to_dir + "/masks/" + base_name_corr
     mask = imageio.imread(from_dir)
-    mask_bin = (mask/255).astype("uint8")
+    mask_bin = (mask / 255).astype("uint8")
     imageio.imwrite(target, mask_bin)
 
 # ======================================================================================================================
@@ -726,5 +778,42 @@ for file in files:
 
 # ======================================================================================================================
 
-IMG = imageio.imread("C:/Users/anjonas/PycharmProjects/segveg2/data/CameraSeg/F61-1.png")
-img = imageio.imread("C:/Users/anjonas/PycharmProjects/SegVeg/data/combined/validation/ESWW2015_202207063_BF0A0036_1_fake_mask.png")
+# prepare data for pytorch implementation (Zenkl et al. 2022)
+
+dir = "C:/Users/anjonas/PycharmProjects/SegVeg/data/combined"
+
+# copy images
+files = glob.glob(f'{dir}/*/images/*.png')
+for f in files:
+    dirto = f.replace("combined", "combined_pytorch")
+    dirto = dirto.replace("\\images", "")
+    out_dir = os.path.dirname(dirto)
+    if not Path(out_dir).exists():
+        Path(out_dir).mkdir(exist_ok=True, parents=True)
+    img = imageio.imread(f)
+    img_resized = cv2.resize(img, (700, 700), interpolation=cv2.INTER_LINEAR)
+    imageio.imwrite(dirto, img_resized)
+
+# reformat and copy masks
+files = glob.glob(f'{dir}/*/masks/*.png')
+for f in files:
+    dirto = f.replace("combined", "combined_pytorch")
+    dirto = dirto.replace("\\masks", "")
+    dirto = dirto.replace(".png", "_mask.png")
+    out_dir = os.path.dirname(dirto)
+    if not Path(out_dir).exists():
+        Path(out_dir).mkdir(exist_ok=True, parents=True)
+    m = imageio.imread(f)
+    m_resized = cv2.resize(m, (700, 700), interpolation=cv2.INTER_LINEAR)
+    m_out = m_resized * 255
+    imageio.imwrite(dirto, m_out)
+
+# ======================================================================================================================
+
+dir = "Z:/Public/Jonas/Data/ESWW006/ImagesNadir/Segmentation"
+
+files = glob.glob(f'{dir}/*.png')
+for f in files:
+    m = imageio.imread(f)
+    # m = m*255
+    imageio.imwrite(f.replace(".png", "_mask.png"), m)
