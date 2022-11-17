@@ -384,6 +384,7 @@ def flatten_contour_data(input_contour, asarray, as_point_list=True):
     else:
         return xs, ys
 
+
 def make_point_list(input):
     """
     Transform cv2 format to ordinary point list
@@ -401,10 +402,12 @@ def make_point_list(input):
     for a, b in zip(xs, ys):
         point_list.append([a, b])
     c = point_list
+
     return c
 
 
 def index_TGI(image):
+
     image = np.float32(image)
 
     R, G, B = cv2.split(image)
@@ -424,8 +427,33 @@ def index_TGI(image):
 
 
 def get_plot(name):
+
     n = os.path.basename(name).replace(".png", "")
     id = n.split("_")[0:2]
     id = "_".join(id)
+
     return id
 
+
+def get_soil_id(name):
+
+    n = os.path.basename(name).replace(".png", "")
+    id = n.split("_")[2:]
+    id = "_".join(id)
+
+    return id
+
+
+def apply_intensity_map(image, intensity_map):
+
+    r, g, b = cv2.split(image)
+    r_ = r * intensity_map
+    g_ = g * intensity_map
+    b_ = b * intensity_map
+    r_ = np.where(r_ > 255, 255, r_)
+    g_ = np.where(g_ > 255, 255, g_)
+    b_ = np.where(b_ > 255, 255, b_)
+    img_ = cv2.merge((r_, g_, b_))
+    img_ = np.uint8(img_)
+
+    return img_

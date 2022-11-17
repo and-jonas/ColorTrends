@@ -1,5 +1,4 @@
 import matplotlib
-
 matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
 import os
@@ -38,6 +37,8 @@ import random
 #              "dir_dif", "dir_dif"]
 batch_nr = [8, 10]
 soil_type = ["dir_dif", "dir_dif"]
+save_masks = True
+n_soils_per_image = 10
 
 # iterate over all batches
 for b, st in zip(batch_nr, soil_type):
@@ -71,17 +72,16 @@ for b, st in zip(batch_nr, soil_type):
         stem_name = base_name.replace(".JPG", "")
         Plot_ID, date = stem_name.split("_")
 
-        # list already generated comosites
+        # list already generated composites
         if Path(out_dir).exists():
-            existing = glob.glob(f'{out_dir}/*.png')
+            existing = glob.glob(f'{out_dir}/{Plot_ID}_{date}*.png')
             existing = [ele for ele in existing if utils.get_plot(ele) == stem_name]
 
-            # make 10 composites max
+            # make 10 composites
             if len(existing) >= 10:
                 continue
-
             else:
-                counter = len(existing) - 1
+                counter = len(existing) + 1  # first iteration
 
         img = imageio.imread(p)
         mask = imageio.imread(m)
@@ -89,10 +89,11 @@ for b, st in zip(batch_nr, soil_type):
         # check if mask is binary; binarize if needed
         if not len(mask.shape) == 2:
             mask = utils.binarize_mask(mask)
-        # # save
-        # imageio.imwrite(f"{mask_out_dir}/8bit/{stem_name}_mask.png", mask)
-        # imageio.imwrite(f"{mask_out_dir}/8bit/{base_name}", img)
-        # imageio.imwrite(f"{mask_out_dir}/{base_name}", np.uint8(mask/255))
+        # save
+        if save_masks:
+            imageio.imwrite(f"{mask_out_dir}/8bit/{stem_name}_mask.png", mask)
+            imageio.imwrite(f"{mask_out_dir}/8bit/{base_name}", img)
+            imageio.imwrite(f"{mask_out_dir}/{base_name}", np.uint8(mask/255))
 
         # erode original mask to get rid of the blueish pixels along plant edges
         mask_erode = cv2.erode(mask, np.ones((2, 2), np.uint8))
@@ -115,6 +116,7 @@ for b, st in zip(batch_nr, soil_type):
         soil_gray = soil_gray / soil_gray.max()
 
         # perform in-filling along the leaf-background boundaries to fill the "safety margin"
+        # TODO is there a faster way to do this?
         mask_eroded = cv2.erode(mask_dilate, np.ones((9, 9), np.uint8))
         mask_inpaint = ((mask_dilate - mask_eroded) / 255).astype("uint8")
         sg = (soil_gray * 255).astype("uint8")
@@ -153,9 +155,8 @@ for b, st in zip(batch_nr, soil_type):
         final_soil_gray = final_soil_gray / 255
 
         # increase the contrast between shaded and sunlight portions of the background
-        adjusted = np.where(final_soil_gray <= 0.4, final_soil_gray, 1.25 * final_soil_gray - 0.1)
+        adjusted = np.where(final_soil_gray <= 0.4, final_soil_gray, 1.5 * final_soil_gray - 0.2)
         adjusted = np.where(adjusted < 0, 0, adjusted)
-        # adjusted = np.where(adjusted > 1, 1, adjusted)
 
         # fig, axs = plt.subplots(1, 3, sharex=True, sharey=True)
         # axs[0].imshow(final_soil_gray)
@@ -168,14 +169,16 @@ for b, st in zip(batch_nr, soil_type):
 
         # ==============================================================================================================
 
-        # randomly select 8 soils per image
-        soils = random.sample(soil_paths, k=15)
+        # randomly select 15 unused soils per image
+        used = [utils.get_soil_id(x) for x in existing]
+        soil_paths_unused = [x for x in soil_paths if os.path.basename(x).replace(".JPG", "") not in used]
+        soils = random.sample(soil_paths_unused, k=n_soils_per_image + 0.5*n_soils_per_image)
 
         # iterate over all soils
-        counter = counter if counter is not None else 0
+        counter = counter if counter is not None else 1
         for s in soils:
 
-            if counter == 9:
+            if counter == n_soils_per_image:
                 break
 
             soil_name = os.path.basename(s)
@@ -185,12 +188,7 @@ for b, st in zip(batch_nr, soil_type):
             if soil is None:
                 continue
 
-            r, g, b = cv2.split(soil[:2400, :2400, :3])
-            r_ = r * adjusted
-            g_ = g * adjusted
-            b_ = b * adjusted
-            img_ = cv2.merge((r_, g_, b_))
-            img_ = np.uint8(img_)
+            img_ = utils.apply_intensity_map(soil, adjusted)
 
             # ==============================================================================================================
 
