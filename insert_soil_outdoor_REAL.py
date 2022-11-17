@@ -29,14 +29,14 @@ import random
 # mask_dir = f"{path}/masks"
 
 # indicate batches and corresponding soil batches
-# batch_nr = [1, 2, 3, 4,
-#             5, 6, 7, 8,
-#             10, 11]
-# soil_type = ["dif", "dif", "dif", "dir_dif",
-#              "dir_dif", "dif", "dir_dif", "dir_dif",
-#              "dir_dif", "dir_dif"]
-batch_nr = [8, 10]
-soil_type = ["dir_dif", "dir_dif"]
+batch_nr = [1, 2, 3, 4,
+            5, 6, 7, 8,
+            10, 11]
+soil_type = ["dif", "dif", "dif", "dir_dif",
+             "dir_dif", "dif", "dir_dif", "dir_dif",
+             "dir_dif", "dir_dif"]
+# batch_nr = [8, 10]
+# soil_type = ["dir_dif", "dir_dif"]
 save_masks = True
 n_soils_per_image = 10
 
@@ -50,8 +50,13 @@ for b, st in zip(batch_nr, soil_type):
     mask_dir = f"{path}Output/annotations_manual/{b}/SegmentationClass"
     soil_paths = glob.glob(
         f"Z:/Public/Jonas/Data/ESWW006/Images_trainset/Soil/{st}/*.JPG")
-    mask_out_dir = f"{path}Output/annotations_manual/masks"
+    masks_out_dir = f"{path}Output/annotations_manual/masks"
+    masks_out_dir_8bit = f"{path}Output/annotations_manual/masks/8bit"
     edited_dir = f"{path}PatchSets/{b}/edited.txt"
+
+    # create directories
+    Path(masks_out_dir).mkdir(exist_ok=True, parents=True)
+    Path(masks_out_dir_8bit).mkdir(exist_ok=True, parents=True)
 
     # list plant images and masks
     plants = glob.glob(f'{plant_dir}/*.JPG')
@@ -66,11 +71,24 @@ for b, st in zip(batch_nr, soil_type):
     # iterate over all plants
     for p, m in zip(plants, masks):
 
+        print(p)
+
         counter = None
 
         base_name = os.path.basename(p)
         stem_name = base_name.replace(".JPG", "")
         Plot_ID, date = stem_name.split("_")
+
+        img = imageio.imread(p)
+        mask = imageio.imread(m)
+
+        # check if mask is binary; binarize if needed
+        if not len(mask.shape) == 2:
+            mask = utils.binarize_mask(mask)
+        # save
+        imageio.imwrite(f"{masks_out_dir}/{base_name}", np.uint8(mask/255))
+        imageio.imwrite(f"{masks_out_dir_8bit}/{stem_name}_mask.png", mask)
+        imageio.imwrite(f"{masks_out_dir_8bit}/{base_name}", img)
 
         # list already generated composites
         if Path(out_dir).exists():
@@ -81,19 +99,7 @@ for b, st in zip(batch_nr, soil_type):
             if len(existing) >= 10:
                 continue
             else:
-                counter = len(existing) + 1  # first iteration
-
-        img = imageio.imread(p)
-        mask = imageio.imread(m)
-
-        # check if mask is binary; binarize if needed
-        if not len(mask.shape) == 2:
-            mask = utils.binarize_mask(mask)
-        # save
-        if save_masks:
-            imageio.imwrite(f"{mask_out_dir}/8bit/{stem_name}_mask.png", mask)
-            imageio.imwrite(f"{mask_out_dir}/8bit/{base_name}", img)
-            imageio.imwrite(f"{mask_out_dir}/{base_name}", np.uint8(mask/255))
+                counter = len(existing)
 
         # erode original mask to get rid of the blueish pixels along plant edges
         mask_erode = cv2.erode(mask, np.ones((2, 2), np.uint8))
@@ -155,7 +161,7 @@ for b, st in zip(batch_nr, soil_type):
         final_soil_gray = final_soil_gray / 255
 
         # increase the contrast between shaded and sunlight portions of the background
-        adjusted = np.where(final_soil_gray <= 0.4, final_soil_gray, 1.5 * final_soil_gray - 0.2)
+        adjusted = np.where(final_soil_gray <= 0.4, final_soil_gray, 1.5 * final_soil_gray - 0.1)
         adjusted = np.where(adjusted < 0, 0, adjusted)
 
         # fig, axs = plt.subplots(1, 3, sharex=True, sharey=True)
