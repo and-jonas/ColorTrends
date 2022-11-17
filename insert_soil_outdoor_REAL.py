@@ -172,7 +172,7 @@ for b, st in zip(batch_nr, soil_type):
         # randomly select 15 unused soils per image
         used = [utils.get_soil_id(x) for x in existing]
         soil_paths_unused = [x for x in soil_paths if os.path.basename(x).replace(".JPG", "") not in used]
-        soils = random.sample(soil_paths_unused, k=n_soils_per_image + 0.5*n_soils_per_image)
+        soils = random.sample(soil_paths_unused, k=int(np.ceiling(n_soils_per_image + 0.5*n_soils_per_image)))
 
         # iterate over all soils
         counter = counter if counter is not None else 1
