@@ -303,7 +303,7 @@ fn_originals = utils.get_identifier(originals)
 predicted = glob.glob(f'{path_predictions}/*/*_fake.png')
 fn_predicted = utils.get_identifier(predicted)
 
-for o in fn_originals:
+for o in np.unique(fn_originals):
 
     files_o = [i for i in originals if o in i]
     files_p = [i for i in predicted if o in i]
