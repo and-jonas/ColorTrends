@@ -457,3 +457,14 @@ def apply_intensity_map(image, intensity_map):
     img_ = np.uint8(img_)
 
     return img_
+
+
+# OPTIONAL: select n soil scenario
+def get_identifier(file_names):
+    ids = []
+    for name in file_names:
+        n = os.path.basename(name).replace(".png", "")
+        id = n.split("_")[0:2]
+        id = "_".join(id)
+        ids.append(id)
+    return ids

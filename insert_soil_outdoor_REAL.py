@@ -265,19 +265,8 @@ directory = "Z:/Public/Jonas/Data/ESWW006/images_trainset/Output/synthetic_image
 images = glob.glob(f'{directory}/*.png')
 out_dir = "C:/Users/anjonas/PycharmProjects/pytorch-CycleGAN-and-pix2pix/data_predict"
 
-
-# OPTIONAL: select n soil scenario
-def get_identifier(file_names):
-    ids = []
-    for name in file_names:
-        n = os.path.basename(name).replace(".png", "")
-        id = n.split("_")[0:2]
-        id = "_".join(id)
-        ids.append(id)
-    return ids
-
 df = pd.DataFrame({'name': images})
-df['id'] = get_identifier(images)
+df['id'] = utils.get_identifier(images)
 df2 = df.groupby(['id']).apply(lambda x: x.sample(10, random_state=10)).reset_index(drop=True)
 used = df2['name'].tolist()
 
@@ -310,9 +299,9 @@ path_masks = "Z:/Public/Jonas/Data/ESWW006/images_trainset/Output/annotations_ma
 masks = glob.glob(f'{path_masks}/*.png')
 fn_masks = [os.path.basename(x).replace("_mask.png", "") for x in masks]
 originals = glob.glob(f'{path_originals}/*/*_real.png')
-fn_originals = get_identifier(originals)
+fn_originals = utils.get_identifier(originals)
 predicted = glob.glob(f'{path_predictions}/*/*_fake.png')
-fn_predicted = get_identifier(predicted)
+fn_predicted = utils.get_identifier(predicted)
 
 for o in fn_originals:
 
