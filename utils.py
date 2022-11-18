@@ -468,3 +468,11 @@ def get_identifier(file_names):
         id = "_".join(id)
         ids.append(id)
     return ids
+
+
+def get_plot_id(file_names):
+    plot_ids = []
+    for name in file_names:
+        n = os.path.basename(name)
+        plot_ids.append(n.split("_")[0])
+    return plot_ids
