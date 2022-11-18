@@ -158,24 +158,24 @@ import utils
 # Date: 15.03.2021
 # Sample training data blue background removal
 # ======================================================================================================================
-
-
-from roi_selector import TrainingPatchSelector
-
-
-def run():
-    # dir_to_process = "Z:/Public/Jonas/Data/ESWW006/Images_trainset/Patches"
-    dir_to_process = "Z:/Public/Jonas/Data/ESWW006/Images_trainset/PatchSets/11/patches"
-    dir_positives = "Z:/Public/Jonas/Data/ESWW006/Images_trainset/segmentationTraining/11/foreground"
-    dir_negatives = "Z:/Public/Jonas/Data/ESWW006/Images_trainset/segmentationTraining/11/background"
-    dir_control = "Z:/Public/Jonas/Data/ESWW006/Images_trainset/segmentationTraining/11/checkers"
-    roi_selector = TrainingPatchSelector(dir_to_process, dir_positives, dir_negatives, dir_control)
-    roi_selector.iterate_images()
-
-
-if __name__ == '__main__':
-    run()
-
+#
+#
+# from roi_selector import TrainingPatchSelector
+#
+#
+# def run():
+#     # dir_to_process = "Z:/Public/Jonas/Data/ESWW006/Images_trainset/Patches"
+#     dir_to_process = "Z:/Public/Jonas/Data/ESWW006/Images_trainset/PatchSets/11/patches"
+#     dir_positives = "Z:/Public/Jonas/Data/ESWW006/Images_trainset/segmentationTraining/11/foreground"
+#     dir_negatives = "Z:/Public/Jonas/Data/ESWW006/Images_trainset/segmentationTraining/11/background"
+#     dir_control = "Z:/Public/Jonas/Data/ESWW006/Images_trainset/segmentationTraining/11/checkers"
+#     roi_selector = TrainingPatchSelector(dir_to_process, dir_positives, dir_negatives, dir_control)
+#     roi_selector.iterate_images()
+#
+#
+# if __name__ == '__main__':
+#     run()
+#
 # ======================================================================================================================
 
 # ======================================================================================================================
@@ -201,57 +201,57 @@ import matplotlib.pyplot as plt
 
 import cv2
 
-# ======================================================================================================================
-# (1) extract features and save to .csv
-# ======================================================================================================================
-
-workdir = 'Z:/Public/Jonas/Data/ESWW006/Images_trainset/segmentationTraining/11'
-
-# set directories to previously selected training patches
-dir_positives = f'{workdir}/foreground'
-dir_negatives = f'{workdir}/background'
-
-# extract feature data for all pixels in all patches
-# output is stores in .csv files in the same directories
-SegmentationFunctions.iterate_patches_dirs(dir_positives, dir_negatives)
-
-# ======================================================================================================================
-# (2) combine training data from all patches into single file
-# ======================================================================================================================
-
-# import all training data
-# get list of files
-files_pos = glob.glob(f'{dir_positives}/*.csv')
-files_neg = glob.glob(f'{dir_negatives}/*.csv')
-all_files = files_pos + files_neg
-
-# load data
-train_data = []
-for i, file in enumerate(all_files):
-    print(i)
-    data = pd.read_csv(file)
-    data = data.iloc[::10, :]  # only keep every 10th pixel of the patch
-    # data_mean = data.mean().to_frame().T
-    # data_mean['response'] = data['response'][0]
-    # train_data.append(data_mean)
-    train_data.append(data)
-# to single df
-train_data = pd.concat(train_data)
-# export, this may take a while
-train_data.to_csv(f'{workdir}/training_data.csv', index=False)
-
-# ======================================================================================================================
-# (3) train random forest classifier
-# ======================================================================================================================
-
-train_data = pd.read_csv(f'{workdir}/training_data.csv')
-
-# OPTIONAL: sample an equal number of rows per class for training
-n_pos = train_data.groupby('response').count().iloc[0, 0]
-n_neg = train_data.groupby('response').count().iloc[1, 0]
-n_min = min(n_pos, n_neg)
-train_data = train_data.groupby(['response']).apply(lambda grp: grp.sample(n=n_min))
-
+# # ======================================================================================================================
+# # (1) extract features and save to .csv
+# # ======================================================================================================================
+#
+# workdir = 'Z:/Public/Jonas/Data/ESWW006/Images_trainset/segmentationTraining/11'
+#
+# # set directories to previously selected training patches
+# dir_positives = f'{workdir}/foreground'
+# dir_negatives = f'{workdir}/background'
+#
+# # extract feature data for all pixels in all patches
+# # output is stores in .csv files in the same directories
+# SegmentationFunctions.iterate_patches_dirs(dir_positives, dir_negatives)
+#
+# # ======================================================================================================================
+# # (2) combine training data from all patches into single file
+# # ======================================================================================================================
+#
+# # import all training data
+# # get list of files
+# files_pos = glob.glob(f'{dir_positives}/*.csv')
+# files_neg = glob.glob(f'{dir_negatives}/*.csv')
+# all_files = files_pos + files_neg
+#
+# # load data
+# train_data = []
+# for i, file in enumerate(all_files):
+#     print(i)
+#     data = pd.read_csv(file)
+#     data = data.iloc[::10, :]  # only keep every 10th pixel of the patch
+#     # data_mean = data.mean().to_frame().T
+#     # data_mean['response'] = data['response'][0]
+#     # train_data.append(data_mean)
+#     train_data.append(data)
+# # to single df
+# train_data = pd.concat(train_data)
+# # export, this may take a while
+# train_data.to_csv(f'{workdir}/training_data.csv', index=False)
+#
+# # ======================================================================================================================
+# # (3) train random forest classifier
+# # ======================================================================================================================
+#
+# train_data = pd.read_csv(f'{workdir}/training_data.csv')
+#
+# # OPTIONAL: sample an equal number of rows per class for training
+# n_pos = train_data.groupby('response').count().iloc[0, 0]
+# n_neg = train_data.groupby('response').count().iloc[1, 0]
+# n_min = min(n_pos, n_neg)
+# train_data = train_data.groupby(['response']).apply(lambda grp: grp.sample(n=n_min))
+#
 # # n_estimators = [int(x) for x in np.linspace(start=20, stop=200, num=10)]
 # # # Number of features to consider at every split
 # # max_features = ['auto', 'sqrt']
@@ -284,9 +284,9 @@ train_data = train_data.groupby(['response']).apply(lambda grp: grp.sample(n=n_m
 # #                                n_jobs=-1)  # Fit the random search model
 # #
 # predictor matrix
-X = np.asarray(train_data)[:, 0:21]
+# X = np.asarray(train_data)[:, 0:21]
 # response vector
-y = np.asarray(train_data)[:, 21]
+# y = np.asarray(train_data)[:, 21]
 # #
 # # model = rf_random.fit(X, y)
 # # rf_random.best_params_
@@ -309,30 +309,30 @@ y = np.asarray(train_data)[:, 21]
 # # grid_search.fit(X, y)
 # # grid_search.best_params_
 # #
-# specify model hyper-parameters
-clf = RandomForestClassifier(
-    max_depth=100,  # maximum depth of 95 decision nodes for each decision tree
-    max_features=8,  # maximum of 6 features (channels) are considered when forming a decision node
-    min_samples_leaf=6,  # minimum of 6 samples needed to form a final leaf
-    min_samples_split=10,  # minimum 4 samples needed to create a decision node
-    n_estimators=20,  # maximum of 55 decision trees
-    bootstrap=False,  # don't reuse samples
-    random_state=1,
-    n_jobs=-1
-)
-
-# fit random forest
-model = clf.fit(X, y)
-score = model.score(X, y)
-
-# save model
-path = f'{workdir}/Output/Models'
-if not Path(path).exists():
-    Path(path).mkdir(parents=True, exist_ok=True)
-pkl_filename = f'{path}/rf_segmentation_v0.pkl'
-with open(pkl_filename, 'wb') as file:
-    pickle.dump(model, file)
-
+# # specify model hyper-parameters
+# clf = RandomForestClassifier(
+#     max_depth=100,  # maximum depth of 95 decision nodes for each decision tree
+#     max_features=8,  # maximum of 6 features (channels) are considered when forming a decision node
+#     min_samples_leaf=6,  # minimum of 6 samples needed to form a final leaf
+#     min_samples_split=10,  # minimum 4 samples needed to create a decision node
+#     n_estimators=20,  # maximum of 55 decision trees
+#     bootstrap=False,  # don't reuse samples
+#     random_state=1,
+#     n_jobs=-1
+# )
+#
+# # fit random forest
+# model = clf.fit(X, y)
+# score = model.score(X, y)
+#
+# # save model
+# path = f'{workdir}/Output/Models'
+# if not Path(path).exists():
+#     Path(path).mkdir(parents=True, exist_ok=True)
+# pkl_filename = f'{path}/rf_segmentation_v0.pkl'
+# with open(pkl_filename, 'wb') as file:
+#     pickle.dump(model, file)
+#
 # # ======================================================================================================================
 # # (5) Get a tile of equal size from each patch
 # # ======================================================================================================================
@@ -383,27 +383,27 @@ with open(pkl_filename, 'wb') as file:
 # ======================================================================================================================
 # (4) segment images
 # ======================================================================================================================
-
-workdir = 'Z:/Public/Jonas/Data/ESWW006/Images_trainset'
-
-from ImagePreSegmentor import ImagePreSegmentor
-
-
-def run():
-    dir_to_process = f'{workdir}/PatchSets/11/patches'
-    dir_output = f'{workdir}/PatchSets/11/Output'
-    dir_model = f'{workdir}/segmentationTraining/11/Output/Models/rf_segmentation_v0.pkl'
-    image_pre_segmentor = ImagePreSegmentor(dir_to_process=dir_to_process,
-                                            dir_model=dir_model,
-                                            dir_output=dir_output,
-                                            img_type="JPG",
-                                            overwrite=True)
-    image_pre_segmentor.segment_images()
-
-
-if __name__ == "__main__":
-    run()
-
+#
+# workdir = 'Z:/Public/Jonas/Data/ESWW006/Images_trainset'
+#
+# from ImagePreSegmentor import ImagePreSegmentor
+#
+#
+# def run():
+#     dir_to_process = f'{workdir}/PatchSets/11/patches'
+#     dir_output = f'{workdir}/PatchSets/11/Output'
+#     dir_model = f'{workdir}/segmentationTraining/11/Output/Models/rf_segmentation_v0.pkl'
+#     image_pre_segmentor = ImagePreSegmentor(dir_to_process=dir_to_process,
+#                                             dir_model=dir_model,
+#                                             dir_output=dir_output,
+#                                             img_type="JPG",
+#                                             overwrite=True)
+#     image_pre_segmentor.segment_images()
+#
+#
+# if __name__ == "__main__":
+#     run()
+#
 # ======================================================================================================================
 # 5. Create CVAT back-up
 # ======================================================================================================================
@@ -411,12 +411,12 @@ if __name__ == "__main__":
 from cvat_integration import BackupCreator
 
 
-workdir = 'Z:/Public/Jonas/Data/ESWW006/Images_trainset/PatchSets/11'
+workdir = 'Z:/Public/Jonas/Data/ESWW006/Images_trainset/PatchSets/12'
 
 
 def run():
-    dir_images = f"{workdir}/patches_adj_exp"
-    dir_masks = f"{workdir}/Output/Mask"
+    dir_images = f"{workdir}/patches"
+    dir_masks = f"{workdir}/masks"
     dir_output = f"{workdir}/cvat_pseudo_backup"
     name = "cvat_pseudo_backup"
     img_type = ".JPG"

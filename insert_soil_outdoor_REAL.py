@@ -86,7 +86,7 @@ for b, st in zip(batch_nr, soil_type):
         if not len(mask.shape) == 2:
             mask = utils.binarize_mask(mask)
         # save
-        imageio.imwrite(f"{masks_out_dir}/{base_name}", np.uint8(mask/255))
+        imageio.imwrite(f"{masks_out_dir}/{stem_name}.png", np.uint8(mask/255))
         imageio.imwrite(f"{masks_out_dir_8bit}/{stem_name}_mask.png", mask)
         imageio.imwrite(f"{masks_out_dir_8bit}/{base_name}", img)
 
@@ -96,7 +96,7 @@ for b, st in zip(batch_nr, soil_type):
             existing = [ele for ele in existing if utils.get_plot(ele) == stem_name]
 
             # make 10 composites
-            if len(existing) >= 10:
+            if len(existing) >= n_soils_per_image:
                 continue
             else:
                 counter = len(existing)
@@ -254,57 +254,6 @@ for b, st in zip(batch_nr, soil_type):
             counter += 1
 
 # ======================================================================================================================
-
-# divide synthetic images into 4 patches of 1200px x 1200px each
-
-import utils
-import random
-
-directory = "Z:/Public/Jonas/Data/ESWW006/images_trainset/Output/synthetic_images/[1-5]"
-images = glob.glob(f'{directory}/*.png')
-
-out_dir = "Z:/Public/Jonas/Data/ESWW006/images_trainset/Output/CGAN_input/composite2real_int"
-Path(out_dir).mkdir(parents=True, exist_ok=True)
-
-
-# OPTIONAL: select n soil scenario
-def get_identifier(file_names):
-    ids = []
-    for name in file_names:
-        n = os.path.basename(name).replace(".png", "")
-        id = n.split("_")[0:2]
-        id = "_".join(id)
-        ids.append(id)
-    return ids
-
-
-df = pd.DataFrame({'name': images})
-df['id'] = get_identifier(images)
-df2 = df.groupby(['id']).apply(lambda x: x.sample(3, random_state=10)).reset_index(drop=True)
-used = df2['name'].tolist()
-
-# for cycle-gan
-
-random.seed(10)
-trainB = random.sample(used, k=round(len(used) * 0.8))
-testB = [item for item in used if item not in trainB]
-
-tile = False
-for im in trainB:
-    img_name = os.path.basename(im)
-    img = imageio.imread(im)
-    if tile:
-        tiles = utils.image_tiler(img, stride=1200)
-        for i, tile in enumerate(tiles):
-            out_name = img_name.replace(".png", f"_{i + 1}.jpg")
-            imageio.imwrite(f"{out_dir}/trainB/{out_name}", tile)
-    else:
-        out_name = img_name.replace(".png", ".jpg")
-        imageio.imwrite(f"{out_dir}/trainB/{out_name}", img)
-
-# real images for cycle gan training:
-
-# ======================================================================================================================
 # RUN THE CYCLE GAN
 # ======================================================================================================================
 
@@ -312,7 +261,7 @@ for im in trainB:
 # Select a subset to transform
 # ======================================================================================================================
 
-directory = "Z:/Public/Jonas/Data/ESWW006/images_trainset/Output/synthetic_images/*"
+directory = "Z:/Public/Jonas/Data/ESWW006/images_trainset/Output/synthetic_images/[0-9]*"
 images = glob.glob(f'{directory}/*.png')
 out_dir = "C:/Users/anjonas/PycharmProjects/pytorch-CycleGAN-and-pix2pix/data_predict"
 
@@ -327,13 +276,13 @@ def get_identifier(file_names):
         ids.append(id)
     return ids
 
-
 df = pd.DataFrame({'name': images})
 df['id'] = get_identifier(images)
-df2 = df.groupby(['id']).apply(lambda x: x.sample(4, random_state=10)).reset_index(drop=True)
+df2 = df.groupby(['id']).apply(lambda x: x.sample(10, random_state=10)).reset_index(drop=True)
 used = df2['name'].tolist()
 
 for im in used:
+    print(im)
     img_name = os.path.basename(im)
     img = imageio.imread(im)
     batches = ["\\1\\", "\\2\\", "\\3\\", "\\4\\", "\\6\\", "\\7\\", "\\11\\"]
@@ -352,68 +301,70 @@ for im in used:
 # CREATE ORIGINAL IMG / PREDICTION HYBRIDS
 # ======================================================================================================================
 
-path_originals = "Z:/Public/Jonas/Data/ESWW006/Images_trainset/Output/cGAN_output"
-path_predictions = "Z:/Public/Jonas/Data/ESWW006/Images_trainset/Output/cGAN_output"
-path_masks = "Z:/Public/Jonas/Data/ESWW006/images_trainset/Output/annotations_manual/[0-9]*/SegmentationClass"
-path_masks_out = "Z:/Public/Jonas/Data/ESWW006/images_trainset/Output/annotations_manual/masks"
+from PIL import Image, ImageFilter
 
-# # binarize masks
-# masks = glob.glob(f'{path_masks}/*.png')
-# for m in masks:
-#     mask = imageio.imread(m)
-#     mask_name = os.path.basename(m)
-#     mask_bin = utils.binarize_mask(mask)
-#     mask_bin = np.where(mask_bin == 255, 1, 0)
-#     mask_bin = np.uint8(mask_bin)
-#     # out_name = mask_name.replace("_mask.png", f"_{j+1}_mask.png")
-#     out_name = mask_name.replace(".png", "_mask.png")
-#     imageio.imwrite(f"{path_masks_out}/{out_name}", mask_bin)
+path_originals = "Z:/Public/Jonas/Data/ESWW006/Images_trainset/Output/cGAN_output/v1"
+path_predictions = "Z:/Public/Jonas/Data/ESWW006/Images_trainset/Output/cGAN_output/v1"
+path_masks = "Z:/Public/Jonas/Data/ESWW006/images_trainset/Output/annotations_manual/masks/8bit"
 
-masks = glob.glob(f'{path_masks_out}/*.png')
+masks = glob.glob(f'{path_masks}/*.png')
 fn_masks = [os.path.basename(x).replace("_mask.png", "") for x in masks]
 originals = glob.glob(f'{path_originals}/*/*_real.png')
 fn_originals = get_identifier(originals)
 predicted = glob.glob(f'{path_predictions}/*/*_fake.png')
+fn_predicted = get_identifier(predicted)
 
-for o in originals:
+for o in fn_originals:
 
-    real = imageio.imread(o)
+    files_o = [i for i in originals if o in i]
+    files_p = [i for i in predicted if o in i]
+    mask = [i for i in masks if o in i]
 
-    out = utils.get_plot(o)
+    cors = []
+    names = []
+    for s in files_o:
+        real = imageio.imread(s)
+        pred = imageio.imread(s.replace("_real", "_fake"))
+        hist_real = cv2.calcHist([real], [0, 1, 2], None, [8, 8, 8], [0, 256, 0, 256, 0, 256])
+        hist_real = cv2.normalize(hist_real, hist_real).flatten()
+        hist_pred = cv2.calcHist([pred], [0, 1, 2], None, [8, 8, 8], [0, 256, 0, 256, 0, 256])
+        hist_pred = cv2.normalize(hist_pred, hist_pred).flatten()
+        cor = cv2.compareHist(hist_real, hist_pred, method=cv2.HISTCMP_CORREL)
+        cors.append(cor)
+        names.append(s)
+
+    index = cors.index(max(cors))
+    which = names[index]
+
+    real = imageio.imread(which)
+    predicted = imageio.imread(which.replace("_real", "_fake"))
+    out = utils.get_plot(which)
     idx = fn_masks.index(out)
-
     mask = imageio.imread(masks[idx])
-    predicted = imageio.imread(o.replace("_real.png", "_fake.png"))
+    soil_mask = np.bitwise_not(mask)
+    soil_mask_3d = np.stack([soil_mask/255, soil_mask/255, soil_mask/255], axis=2)
 
-    veg = np.stack([mask, mask, mask], axis=2) * real
-    mask_inv = np.bitwise_not(mask) - 254
-    soil = np.stack([mask_inv, mask_inv, mask_inv], axis=2) * predicted
+    # erode vegetation mask
+    mask_erode = cv2.erode(mask, np.ones((9, 9), np.uint8))
 
-    composite = veg + soil
+    predicted_image = Image.fromarray((np.uint8(predicted)))
+    real_image = Image.fromarray(np.uint8(real))
+    mask_image = Image.fromarray(np.uint8(mask_erode))
+    mask_blur = mask_image.filter(ImageFilter.GaussianBlur(5))
+    composite = Image.composite(real_image, predicted_image, mask_blur)
 
-    # blur edges
-    edge_mask = np.zeros_like(mask)
-    contours, hier = cv2.findContours(mask, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_NONE)
-    for c in contours:
-        cv2.drawContours(edge_mask, c, -1, color=1, thickness=6)
-
-    # blur the final image and multiply with the hole mask
-    blurred_edges = cv2.blur(composite, (3, 3)) * np.dstack([edge_mask, edge_mask, edge_mask])
-
-    # replace "original" edges with blurred edges
-    idx = np.where(edge_mask == 1)
-    composite[idx] = blurred_edges[idx]
-
-    # fig, axs = plt.subplots(1, 3, sharex=True, sharey=True)
-    # axs[0].imshow(real)
+    # fig, axs = plt.subplots(1, 4, sharex=True, sharey=True)
+    # axs[0].imshow(real_image)
     # axs[0].set_title('real')
-    # axs[1].imshow(predicted)
+    # axs[1].imshow(predicted_image)
     # axs[1].set_title('predictd')
     # axs[2].imshow(composite)
     # axs[2].set_title('composite')
+    # axs[3].imshow(mask_blur)
+    # axs[3].set_title('mask')
     # plt.show(block=True)
 
-    out_name = o.replace("_real.png", "_composite.png")
+    out_name = which.replace("_real", "_composite")
     imageio.imwrite(out_name, composite)
 
 # ======================================================================================================================
@@ -423,18 +374,15 @@ for o in originals:
 import random
 
 # process masks first
-# dir_masks = "Z:/Public/Jonas/Data/ESWW006/images_trainset/Output/annotations_manual/all"
-dir_masks = "Z:/Public/Jonas/Data/ESWW006/images_trainset/Output/annotations_manual/5/SegmentationClass"
-out_dir_masks = "Z:/Public/Jonas/Data/ESWW006/images_trainset/Output/annotations_manual/5_patches"
+dir_masks = "Z:/Public/Jonas/Data/ESWW006/images_trainset/Output/annotations_manual/masks"
+out_dir_masks = "Z:/Public/Jonas/Data/ESWW006/images_trainset/Output/annotations_manual/masks_patches"
 
 # tile masks
-# masks = glob.glob(f'{dir_masks}/*_mask.png')
 masks = glob.glob(f'{dir_masks}/*.png')
 for m in masks:
     mask = imageio.imread(m)
     mask_name = os.path.basename(m)
-    mask_bin = utils.binarize_mask(mask)
-    mask_tiles = utils.image_tiler(mask_bin, stride=1200)
+    mask_tiles = utils.image_tiler(mask, stride=1200)
     for j in range(len(mask_tiles)):
         # out_name = mask_name.replace("_mask.png", f"_{j+1}_mask.png")
         out_name = mask_name.replace(".png", f"_{j + 1}_mask.png")
@@ -444,7 +392,6 @@ for m in masks:
 
 files = glob.glob(
     "Z:/Public/Jonas/Data/ESWW006/Images_trainset/Output/cGAN_output/*/*_fake.png")
-
 
 def get_plot_id(file_names):
     plot_ids = []
