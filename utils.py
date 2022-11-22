@@ -4,6 +4,8 @@ import random
 from plantcv import plantcv as pcv
 import copy
 import os
+import shutil
+import imageio
 
 
 def random_patch(img, size, frame, random_patch=True):
@@ -476,3 +478,29 @@ def get_plot_id(file_names):
         n = os.path.basename(name)
         plot_ids.append(n.split("_")[0])
     return plot_ids
+
+
+def tile_and_move_images(file_list, key_list, out_dir, stride=None):
+    for ele, key in zip(file_list, key_list):
+        name = os.path.basename(ele)
+        img_id = name.split("_")[:2]
+        img_id = "_".join(img_id)
+        patch_id = name.split("_")[len(name.split("_")) - 2]
+        destination = f'{out_dir}/{key}/images/{name}'
+        mask_source = f'Z:/Public/Jonas/Data/ESWW006/Images_trainset/Output/annotations_manual/masks/{img_id}.png'
+        mask_destination = f'{out_dir}/{key}/masks/{name}'
+        if stride is not None:
+            img = imageio.imread(ele)
+            mask = imageio.imread(mask_source)
+            mask = np.uint8(mask)
+            tiles = image_tiler(img, stride=stride)
+            mask_tiles = image_tiler(mask, stride=stride)
+            for j in range(len(tiles)):
+                out_name = destination.replace(".png", f"_{j + 1}.png")
+                imageio.imwrite(out_name, tiles[j])
+                out_name = mask_destination.replace(".png", f"_{j + 1}.png")
+                imageio.imwrite(out_name, mask_tiles[j])
+        else:
+            shutil.copy(ele, destination)
+            destination = f'{out_dir}/{key}/masks/{name}'
+            shutil.copy(mask_source, destination)

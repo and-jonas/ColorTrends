@@ -13,6 +13,7 @@ import scipy
 from pathlib import Path
 import shutil
 import random
+import re
 
 # ======================================================================================================================
 
@@ -298,6 +299,32 @@ for im in trainB:
 # real images for cycle gan training:
 # image_selection_real.py
 
+# move images needing domain transfer to folder
+existing_folder = "Z:/Public/Jonas/Data/ESWW006/images_trainset/Output/CGAN_output/v1/*"
+existing_images = glob.glob(f'{existing_folder}/*_fake.png')
+existing_images = np.unique(utils.get_identifier(existing_images))
+
+raw_folder = "Z:/Public/Jonas/Data/ESWW006/images_trainset/Output/synthetic_images/[0-9]*"
+raw_composites = glob.glob(f'{raw_folder}/*.png')
+rc = np.unique(utils.get_identifier(raw_composites))
+
+to_process = [ele for ele in rc if ele not in existing_images]
+to_process = [ele for ele in raw_composites if any(x in ele for x in to_process)]
+
+out_dir = "C:/Users/anjonas/PycharmProjects/pytorch-CycleGAN-and-pix2pix/data_predict"
+
+for im in to_process:
+    print(im)
+    img_name = os.path.basename(im)
+    img = imageio.imread(im)
+    batches = ["\\1\\", "\\2\\", "\\3\\", "\\4\\", "\\6\\", "\\7\\", "\\11\\"]
+    if any(b in im for b in batches):
+        type = "dif"
+    else:
+        type = "dir"
+    out_name = img_name.replace(".png", ".jpg")
+    imageio.imwrite(f"{out_dir}/{type}/{out_name}", img)
+
 # ======================================================================================================================
 # TRAIN THE CYCLE GAN
 # ======================================================================================================================
@@ -347,6 +374,11 @@ originals = glob.glob(f'{path_originals}/*/*_real.png')
 fn_originals = utils.get_identifier(originals)
 predicted = glob.glob(f'{path_predictions}/*/*_fake.png')
 fn_predicted = utils.get_identifier(predicted)
+
+# remove existing ones
+existing_composites = glob.glob(f'{path_predictions}/*/*_composite.png')
+fn_existing_composites = utils.get_identifier(existing_composites)
+fn_originals = [ele for ele in fn_originals if ele not in fn_existing_composites]
 
 for o in np.unique(fn_originals):
 
@@ -405,6 +437,10 @@ for o in np.unique(fn_originals):
 # PREPARE DATA FOR SEGMENTATION TRAINING
 # ======================================================================================================================
 
+# ======================================================================================================================
+# EITHER: create a new split using all data
+# ======================================================================================================================
+
 import random
 
 # process masks first
@@ -453,30 +489,42 @@ Path(f'{out_dir}/validation/images').mkdir(exist_ok=True, parents=True)
 Path(f'{out_dir}/validation/masks').mkdir(exist_ok=True, parents=True)
 
 # tile and move images and masks
-tile = True
-for ele, key in zip(lst, lst_key):
-    name = os.path.basename(ele)
-    img_id = name.split("_")[:2]
-    img_id = "_".join(img_id)
-    patch_id = name.split("_")[len(name.split("_")) - 2]
-    destination = f'{out_dir}/{key}/images/{name}'
-    mask_source = f'Z:/Public/Jonas/Data/ESWW006/Images_trainset/Output/annotations_manual/masks/{img_id}.png'
-    mask_destination = f'{out_dir}/{key}/masks/{name}'
-    if tile:
-        img = imageio.imread(ele)
-        mask = imageio.imread(mask_source)
-        mask = np.uint8(mask)
-        tiles = utils.image_tiler(img, stride=1200)
-        mask_tiles = utils.image_tiler(mask, stride=1200)
-        for j in range(len(tiles)):
-            out_name = destination.replace(".png", f"_{j + 1}.png")
-            imageio.imwrite(out_name, tiles[j])
-            out_name = mask_destination.replace(".png", f"_{j + 1}.png")
-            imageio.imwrite(out_name, mask_tiles[j])
-    else:
-        shutil.copy(ele, destination)
-        destination = f'{out_dir}/{key}/masks/{name}'
-        shutil.copy(mask_source, destination)
+utils.tile_and_move_images(stride=1200,
+                           file_list=lst,
+                           key_list=lst_key,
+                           out_dir=out_dir)
+
+# ======================================================================================================================
+# OR: add additional samples to the training data
+# ======================================================================================================================
+
+# process masks first
+dir_masks = "Z:/Public/Jonas/Data/ESWW006/images_trainset/Output/annotations_manual/masks"
+out_dir_masks = "Z:/Public/Jonas/Data/ESWW006/images_trainset/Output/annotations_manual/masks_patches"
+
+# create train, test, validation from cyclegan output
+# list all transformed images
+files1 = glob.glob(
+    "Z:/Public/Jonas/Data/ESWW006/Images_trainset/Output/cGAN_output/v1/*/*_fake.png")
+# add composites
+files2 = glob.glob(
+    "Z:/Public/Jonas/Data/ESWW006/Images_trainset/Output/cGAN_output/v1/*/*_composite.png")
+files = files1 + files2
+
+# remove existing
+out_dir = "C:/Users/anjonas/PycharmProjects/SegVeg/data/combined_patches"
+existing_patches = glob.glob(f"{out_dir}/*/images/*.png")
+existing_patches = [os.path.basename(e) for e in existing_patches]
+pattern = r'_[0-9].png'
+existing_patches = [re.sub(pattern, ".png", e) for e in existing_patches]
+ff = [f for f in files if os.path.basename(f) not in existing_patches]
+lst_key = ["train" for i in range(len(ff))]
+
+# tile and move images and masks
+utils.tile_and_move_images(stride=1200,
+                           file_list=ff,
+                           key_list=lst_key,
+                           out_dir=out_dir)
 
 # ======================================================================================================================
 # TRAIN THE SEGMENTATION MODEL !!
