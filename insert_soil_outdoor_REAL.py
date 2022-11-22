@@ -53,7 +53,7 @@ for b, st in zip(batch_nr, soil_type):
     masks_out_dir = f"{path}Output/annotations_manual/masks"
     masks_out_dir_8bit = f"{path}Output/annotations_manual/masks/8bit"
     edited_dir = f"{path}PatchSets/{b}/edited.txt"
-
+    processed_dir = f"{path}Output/synthetic_images/{b}/"
     # create directories
     Path(masks_out_dir).mkdir(exist_ok=True, parents=True)
     Path(masks_out_dir_8bit).mkdir(exist_ok=True, parents=True)
@@ -67,6 +67,12 @@ for b, st in zip(batch_nr, soil_type):
         edited_list = pd.read_csv(edited_dir, header=None).iloc[:, 0].tolist()
         plants = [ele for ele in plants if os.path.basename(ele).replace(".JPG", "") in edited_list]
         masks = [ele for ele in masks if os.path.basename(ele).replace(".png", "") in edited_list]
+
+    # only process new ones
+    processed = glob.glob(f'{processed_dir}/*.png')
+    processed_list = [utils.get_plot(ele) for ele in processed]
+    plants = [ele for ele in plants if os.path.basename(ele).replace(".JPG", "") not in processed_list]
+    masks = [ele for ele in masks if os.path.basename(ele).replace(".png", "") not in processed_list]
 
     # iterate over all plants
     for p, m in zip(plants, masks):
@@ -438,7 +444,7 @@ for p in val_plots:
 lst = train_list + val_list
 lst_key = ["train"] * len(train_list) + ["validation"] * len(val_list)
 
-out_dir = "C:/Users/anjonas/PycharmProjects/SegVeg/data/combined"
+out_dir = "C:/Users/anjonas/PycharmProjects/SegVeg/data/combined_patches"
 
 # make dirs if required
 Path(f'{out_dir}/train/images').mkdir(exist_ok=True, parents=True)
