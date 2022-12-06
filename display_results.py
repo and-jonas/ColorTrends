@@ -9,7 +9,9 @@ import glob
 import os
 from pathlib import Path
 
-dir = "C:/Users/anjonas/PycharmProjects/DL/data/inference_test"
+# dir = "C:/Users/anjonas/PycharmProjects/DL/data/inference_test"
+dir = "C:/Users/anjonas/PycharmProjects/DL/data/inference"
+pred_dir = "C:/Users/anjonas/PycharmProjects/DL/pycharm_project_950/data/inference_test"
 images = glob.glob(f'{dir}/*.png')
 
 for image in images:
@@ -17,7 +19,7 @@ for image in images:
     img_name = os.path.basename(image)
     stem_name = Path(image).stem
 
-    mask = imageio.imread(f'{dir}/predictions/{stem_name}_mask.png')
+    mask = imageio.imread(f'{pred_dir}/predictions/{stem_name}_mask.png')
     img = imageio.imread(f'{dir}/{img_name}')
     # plt.imshow(mask)
     # plt.imshow(img)
@@ -39,4 +41,4 @@ for image in images:
     img.paste(mask, (0, 0), mask)
     final_patch = np.asarray(img)
     plt.imshow(final_patch)
-    imageio.imwrite(f'{dir}/overlay/{stem_name}_overlay.png', final_patch)
+    imageio.imwrite(f'{pred_dir}/overlay/{stem_name}_overlay.png', final_patch)

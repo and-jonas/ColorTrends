@@ -50,6 +50,7 @@ reload(utils)
 
 dir_img = "P:/Public/Jonas/003_ESWW/ColorTrends/train_img_selection/patches"
 dir_mask = "P:/Public/Jonas/003_ESWW/ColorTrends/train_img_selection/annotations/annotations_20220218"
+# dir_mask = "P:/Public/Jonas/003_ESWW/ColorTrends/train_img_selection/annotations/annotations_1200"
 dir_to = "P:/Public/Jonas/003_ESWW/ColorTrends/train_img_selection/annotations/all_annotations"
 
 # re-sample 1200x1200 patches from annotated patches
@@ -81,13 +82,13 @@ for path in mask_paths:
         # make RGB
         img_patch = cv2.cvtColor(img_patch, cv2.COLOR_BGR2RGB)
 
-        # resize to 700x700 pixels
-        img_patch_resized = cv2.resize(img_patch, (700, 700), interpolation=cv2.INTER_LINEAR)
-        mask_patch_resized = cv2.resize(mask_patch, (700, 700), interpolation=cv2.INTER_NEAREST)
+        # # resize to 700x700 pixels
+        # img_patch_resized = cv2.resize(img_patch, (700, 700), interpolation=cv2.INTER_LINEAR)
+        # mask_patch_resized = cv2.resize(mask_patch, (700, 700), interpolation=cv2.INTER_NEAREST)
 
         # write
-        cv2.imwrite(f"{dir_to}/Images/{stem_name}_{i}.png", img_patch_resized, [cv2.IMWRITE_PNG_COMPRESSION, 0])
-        cv2.imwrite(f"{dir_to}/Masks/{stem_name}_{i}_mask.png", mask_patch_resized, [cv2.IMWRITE_PNG_COMPRESSION, 0])
+        cv2.imwrite(f"{dir_to}/full_size/Images/{stem_name}_{i}.png", img_patch, [cv2.IMWRITE_PNG_COMPRESSION, 0])
+        cv2.imwrite(f"{dir_to}/full_size/Masks/{stem_name}_{i}_mask.png", mask_patch, [cv2.IMWRITE_PNG_COMPRESSION, 0])
         i += 1
 
 # ======================================================================================================================
@@ -96,12 +97,18 @@ for path in mask_paths:
 # --> resize to 700*700 px
 # ======================================================================================================================
 
-dir_img = "P:/Public/Jonas/003_ESWW/ColorTrends/train_img_selection/patches_soil_in_focus"
+# dir_img = "P:/Public/Jonas/003_ESWW/ColorTrends/train_img_selection/patches"
+# dir_img = "P:/Public/Jonas/003_ESWW/ColorTrends/train_img_selection/patches_1200"
+dir_img = "Z:/Public/Jonas/Data/ESWW006/ImagesNadir/patches_annotation_spikes/STG_DIR/JPEGImages"
+# dir_img = "P:/Public/Jonas/003_ESWW/ColorTrends/train_img_selection/patches_soil_in_focus"
 # dir_mask = "P:/Public/Jonas/003_ESWW/ColorTrends/train_img_selection/annotations/annotations_1200"
-dir_mask = "P:/Public/Jonas/003_ESWW/ColorTrends/train_img_selection/annotations/annotations_20220923"
+# dir_mask = "P:/Public/Jonas/003_ESWW/ColorTrends/train_img_selection/annotations/annotations_20220406"
+dir_mask = "Z:/Public/Jonas/Data/ESWW006/ImagesNadir/patches_annotation_spikes/STG_DIR/SegmentationClass"
+# dir_mask = "P:/Public/Jonas/003_ESWW/ColorTrends/train_img_selection/annotations/annotations_20220923"
 dir_to = "P:/Public/Jonas/003_ESWW/ColorTrends/train_img_selection/annotations/all_annotations"
 
-mask_paths = glob.glob(f'{dir_mask}/SegmentationClass/*.png')
+# mask_paths = glob.glob(f'{dir_mask}/SegmentationClass/*.png')
+mask_paths = glob.glob(f'{dir_mask}/*.png')
 for path in mask_paths:
 
     # set names
@@ -124,13 +131,15 @@ for path in mask_paths:
     # make RGB
     img_patch = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
-    # resize to 1024x1024 pixels
-    img_patch_resized = cv2.resize(img_patch, (700, 700), interpolation=cv2.INTER_LINEAR)
-    mask_patch_resized = cv2.resize(mask_bin, (700, 700), interpolation=cv2.INTER_NEAREST)
+    # # resize to 1024x1024 pixels
+    # img_patch_resized = cv2.resize(img_patch, (700, 700), interpolation=cv2.INTER_LINEAR)
+    # mask_patch_resized = cv2.resize(mask_bin, (700, 700), interpolation=cv2.INTER_NEAREST)
 
     # write
-    cv2.imwrite(f"{dir_to}/Images/{stem_name}.png", img_patch_resized, [cv2.IMWRITE_PNG_COMPRESSION, 0])
-    cv2.imwrite(f"{dir_to}/Masks/{stem_name}_mask.png", mask_patch_resized, [cv2.IMWRITE_PNG_COMPRESSION, 0])
+    # cv2.imwrite(f"{dir_to}/Images/{stem_name}.png", img_patch_resized, [cv2.IMWRITE_PNG_COMPRESSION, 0])
+    # cv2.imwrite(f"{dir_to}/Masks/{stem_name}_mask.png", mask_patch_resized, [cv2.IMWRITE_PNG_COMPRESSION, 0])
+    cv2.imwrite(f"{dir_to}/full_size/Images/{stem_name}.png", img_patch, [cv2.IMWRITE_PNG_COMPRESSION, 0])
+    cv2.imwrite(f"{dir_to}/full_size/Masks/{stem_name}_mask.png", mask_bin, [cv2.IMWRITE_PNG_COMPRESSION, 0])
 
 # ======================================================================================================================
 
@@ -225,3 +234,6 @@ for image in selected:
     cv2.imwrite(f"{to_dir}/{out_name}", patch, [cv2.IMWRITE_PNG_COMPRESSION, 0])
 
 # ======================================================================================================================
+
+
+

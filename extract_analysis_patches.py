@@ -26,7 +26,6 @@ out_dir = "Z:/Public/Jonas/Data/ESWW006/ImagesNadir"
 in_dir = "Z:/Public/Jonas/Data/ESWW006/ImagesNadir/2022_*/JPEG"
 images = glob.glob(f'{in_dir}/*.JPG')
 images = [item for item in images if "Ref" not in item]
-images = images[468:]
 
 # ======================================================================================================================
 # EXTRACT PATCHES THAT WILL BE USED FOR ANALYSIS FROM REAL IMAGES
@@ -54,7 +53,7 @@ for i in images:
         # get corner coordinates and write to csv
         binary = np.where(source_mask == 0, 0, 1)
         center = ndimage.center_of_mass(binary)
-        x1 = int(center[1]-2250) # 4000PX X 4000PX patches
+        x1 = int(center[1]-2250)  # 4000PX X 4000PX patches
         x2 = int(center[1]+1750)
         y1 = 0
         y2 = 4000
@@ -76,6 +75,14 @@ for i in images:
     checker = cv2.resize(checker, (y_new, x_new), interpolation=cv2.INTER_LINEAR)
     checker_name = f'{out_dir}/Meta/patch_checkers/{base_name}'
     imageio.imwrite(checker_name, checker)
+
+# ======================================================================================================================
+
+out_dir = "Z:/Public/Jonas/Data/ESWW006/ImagesNadir"
+in_dir = "Z:/Public/Jonas/Data/ESWW006/ImagesNadir/2022_*/JPEG"
+images = glob.glob(f'{in_dir}/*.JPG')
+images = [item for item in images if "Ref" not in item]
+
 
 # ======================================================================================================================
 # FROM THESE PATCHES, EXTRACT PATCHES FOR MANUAL ANNOTATIONS FROM SCRATCH

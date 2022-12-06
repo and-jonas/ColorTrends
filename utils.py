@@ -6,6 +6,7 @@ import copy
 import os
 import shutil
 import imageio
+from pathlib import Path
 
 
 def random_patch(img, size, frame, random_patch=True):
@@ -481,6 +482,14 @@ def get_plot_id(file_names):
 
 
 def tile_and_move_images(file_list, key_list, out_dir, stride=None):
+
+    # create necessary directories if needed
+    Path(f'{out_dir}/train/images').mkdir(exist_ok=True, parents=True)
+    Path(f'{out_dir}/train/masks').mkdir(exist_ok=True, parents=True)
+    Path(f'{out_dir}/validation/images').mkdir(exist_ok=True, parents=True)
+    Path(f'{out_dir}/validation/masks').mkdir(exist_ok=True, parents=True)
+
+    # copy and move files
     for ele, key in zip(file_list, key_list):
         name = os.path.basename(ele)
         img_id = name.split("_")[:2]
@@ -504,3 +513,31 @@ def tile_and_move_images(file_list, key_list, out_dir, stride=None):
             shutil.copy(ele, destination)
             destination = f'{out_dir}/{key}/masks/{name}'
             shutil.copy(mask_source, destination)
+
+
+def split_dataset(files, split_ratio):
+    plots = get_plot_id(files)
+    plots = np.unique(plots)
+
+    n_plots = len(np.unique(plots))
+    n_train = int(np.ceil(split_ratio * n_plots))
+    n_val = int((n_plots - n_train))
+
+    random.seed(10)
+    train_plots = random.sample(list(plots), k=n_train)
+    val_plots = set(plots) - set(train_plots)
+
+    train_list = []
+    for p in train_plots:
+        lst = [s for s in files if p in s]
+        train_list.extend(lst)
+
+    val_list = []
+    for p in val_plots:
+        lst = [s for s in files if p in s]
+        val_list.extend(lst)
+
+    lst = train_list + val_list
+    lst_key = ["train"] * len(train_list) + ["validation"] * len(val_list)
+
+    return lst, lst_key

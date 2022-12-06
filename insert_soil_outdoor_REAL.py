@@ -482,12 +482,6 @@ lst_key = ["train"] * len(train_list) + ["validation"] * len(val_list)
 
 out_dir = "C:/Users/anjonas/PycharmProjects/SegVeg/data/combined_patches"
 
-# make dirs if required
-Path(f'{out_dir}/train/images').mkdir(exist_ok=True, parents=True)
-Path(f'{out_dir}/train/masks').mkdir(exist_ok=True, parents=True)
-Path(f'{out_dir}/validation/images').mkdir(exist_ok=True, parents=True)
-Path(f'{out_dir}/validation/masks').mkdir(exist_ok=True, parents=True)
-
 # tile and move images and masks
 utils.tile_and_move_images(stride=1200,
                            file_list=lst,
@@ -525,6 +519,41 @@ utils.tile_and_move_images(stride=1200,
                            file_list=ff,
                            key_list=lst_key,
                            out_dir=out_dir)
+
+# ======================================================================================================================
+# CREATE DIFFERENT DATA SUBSETS
+# ======================================================================================================================
+
+full_dir = "C:/Users/anjonas/PycharmProjects/SegVeg/data/combined_patches"
+all_fakes = glob.glob(f'{full_dir}/*/images/*_fake_[0-9].png')
+all_composites = glob.glob(f'{full_dir}/*/images/*_composite_[0-9].png')
+
+df = pd.DataFrame({'name': all_fakes})
+df['id'] = utils.get_identifier(all_fakes)
+# df['soil'] = [re.sub("_fake_[0-9]", "", utils.get_soil_id(x)) for x in all_fakes]
+df2 = df.groupby(['id']).apply(lambda x: x.sample(1, random_state=10)).reset_index(drop=True)
+used3 = df2['name'].tolist()
+used4 = [re.sub("_3.png", "_4.png", x) for x in used3]
+used1 = [re.sub("_3.png", "_1.png", x) for x in used3]
+used2 = [re.sub("_3.png", "_2.png", x) for x in used3]
+used = used1 + used2 + used3 + used4
+
+# WITHOUT COMPOSITES
+lst, lst_key = utils.split_dataset(files=used, split_ratio=0.8)
+reduced_dir = "C:/Users/anjonas/PycharmProjects/SegVeg/data/reduced_nocomposite"
+utils.tile_and_move_images(stride=None,
+                           file_list=lst,
+                           key_list=lst_key,
+                           out_dir=reduced_dir)
+
+# WITH COMPOSITES
+files = used + all_composites
+lst, lst_key = utils.split_dataset(files=files, split_ratio=0.8)
+reduced_dir = "C:/Users/anjonas/PycharmProjects/SegVeg/data/reduced_withcomposite"
+utils.tile_and_move_images(stride=None,
+                           file_list=lst,
+                           key_list=lst_key,
+                           out_dir=reduced_dir)
 
 # ======================================================================================================================
 # TRAIN THE SEGMENTATION MODEL !!

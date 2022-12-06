@@ -127,8 +127,8 @@ class TrainingPatchSelector:
         # get all files and their paths
         walker = iter(os.walk(self.dir_to_process))
         root, dirs, files = next(walker)
-        if dirs:
-            sys.exit("There are subdirectories in the selected directory")
+        # if dirs:
+        #     sys.exit("There are subdirectories in the selected directory")
         all_files = [root + "/" + file for file in files]
         file_names = [file for file in os.listdir(root) if os.path.isfile(os.path.join(root, file))]
 
