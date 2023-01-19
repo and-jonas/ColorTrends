@@ -395,19 +395,19 @@ def color_index_transformation(image):
     return desc, desc_names
 
 
-def index_distribution(image, image_name, mask):
-    px_roi = image[mask == 255].tolist()
-    mn = np.mean(px_roi)
-    md = np.median(px_roi)
-    kt = kurtosis(px_roi)
-    sk = skew(px_roi)
-    p75, p251 = np.percentile(px_roi, [75, 25])
+def index_distribution(image, feature_name, level_id, level_mask):
+    px_roi = image[level_mask == 255]
+    mn = np.nanmean(px_roi)
+    md = np.nanmedian(px_roi)
+    kt = kurtosis(px_roi, nan_policy='omit')
+    sk = skew(px_roi, nan_policy='omit')
+    p75, p251 = np.nanpercentile(px_roi, [75, 25])
     iqr = p75 - p251
-    p98, p02 = np.percentile(px_roi, [98, 2])
+    p98, p02 = np.nanpercentile(px_roi, [98, 2])
     ipr = p98 - p02
-    std = np.std(px_roi)
+    std = np.nanstd(px_roi)
     stat_names = ["mean", "median", "kurtosis", "skewness", "intqrange", "intprange", "stddev"]
-    stat_names = [image_name + "_" + n for n in stat_names]
+    stat_names = [level_id + "_" + feature_name + "_" + n for n in stat_names]
     return [mn, md, kt, sk, iqr, ipr, std], stat_names
 
 # =====

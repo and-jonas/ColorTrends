@@ -19,8 +19,6 @@ import cv2
 import imageio
 from pathlib import Path
 import copy
-import multiprocessing
-from multiprocessing import Manager, Process
 
 import matplotlib
 matplotlib.use('Qt5Agg')
@@ -183,8 +181,6 @@ class ImagePostSegmentor:
         self.patch_img_veg = self.path_base_dir / "SegImg" / "VegMask"
         self.patch_img_ear = self.path_base_dir / "SegImg" / "EarMask"
         self.patch_img_veg_no_ear = self.path_base_dir / "SegImg" / "VegMaskNoEar"
-        # - csv
-        self.path_stats = self.path_output / "Stats"
         # helpers
         self.image_type = img_type
         self.mask_type = mask_type
@@ -197,7 +193,7 @@ class ImagePostSegmentor:
         """
         for path in [self.path_output, self.path_mask, self.patch_mask_ear, self.patch_mask_veg,
                      self.patch_mask_veg_no_ear, self.patch_img_veg, self.patch_img_ear,
-                     self.patch_img_veg_no_ear, self.path_stats]:
+                     self.patch_img_veg_no_ear]:
             path.mkdir(parents=True, exist_ok=True)
 
     def file_feed(self):
@@ -226,8 +222,6 @@ class ImagePostSegmentor:
         with open(self.dir_model, 'rb') as model:
             model = pickle.load(model)
 
-        model.n_jobs = 1  # disable parallel
-
         # extract pixel features
         color_spaces, descriptors, descriptor_names = SegmentationFunctions.get_color_spaces(img)
         descriptors_flatten = descriptors.reshape(-1, descriptors.shape[-1])
@@ -253,18 +247,17 @@ class ImagePostSegmentor:
 
         return mask
 
-    def process_image(self, work_queue, result):
+    def process_images(self):
 
-        for job in iter(work_queue.get, 'STOP'):
+        self.prepare_workspace()
+        files = self.file_feed()
 
-            file = job['file']
+        for file in files:
 
             # read image
             base_name = os.path.basename(file)
             stem_name = Path(file).stem
             png_name = base_name.replace("." + self.image_type, ".png")
-            csv_name = base_name.replace("." + self.image_type, ".csv")
-
             img = Image.open(file)
             pix = np.array(img)
 
@@ -367,47 +360,5 @@ class ImagePostSegmentor:
             veg_necr = len(np.where(veg_col_mask[:, :, 1] == 61)[0])/len(np.where(veg_mask == 255)[0])
             status_stat_names = ["ear_green", "ear_chlr", "ear_necr", "veg_green", "veg_chlr", "veg_necr"]
             dfa[status_stat_names] = [[ear_green, ear_chlr, ear_necr, veg_green, veg_chlr, veg_necr]]
-            dfa.to_csv(self.path_stats / csv_name, index=False)
-            result.put(file)
 
-    def process_images(self):
 
-        self.prepare_workspace()
-        files = self.file_feed()
-
-        if len(files) > 0:
-            # make job and results queue
-            m = Manager()
-            jobs = m.Queue()
-            results = m.Queue()
-            processes = []
-            # Progress bar counter
-            max_jobs = len(files)
-            count = 0
-
-            # Build up job queue
-            for file in files:
-                print(file, "to queue")
-                job = dict()
-                job['file'] = file
-                jobs.put(job)
-
-            # Start processes
-            for w in range(multiprocessing.cpu_count() - 11):
-                p = Process(target=self.process_image,
-                            args=(jobs, results))
-                p.daemon = True
-                p.start()
-                processes.append(p)
-                jobs.put('STOP')
-
-            print(str(len(files)) + " jobs started, " + str(multiprocessing.cpu_count() - 11) + " workers")
-
-            # Get results and increment counter along with it
-            while count < max_jobs:
-                img_names = results.get()
-                count += 1
-                print("processed " + str(count) + "/" + str(max_jobs))
-
-            for p in processes:
-                p.join()

@@ -176,6 +176,8 @@ import cv2
 
 
 from ImagePreSegmentor import ImagePostSegmentor
+# from ImagePreSegmentorSerial import ImagePostSegmentor
+
 
 import os
 
