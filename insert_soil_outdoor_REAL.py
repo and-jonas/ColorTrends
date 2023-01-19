@@ -168,6 +168,7 @@ for b, st in zip(batch_nr, soil_type):
         final_soil_gray = final_soil_gray / 255
 
         # increase the contrast between shaded and sunlight portions of the background
+        # TODO this results in a step, must be corrected!!!
         adjusted = np.where(final_soil_gray <= 0.4, final_soil_gray, 1.5 * final_soil_gray - 0.1)
         adjusted = np.where(adjusted < 0, 0, adjusted)
 
@@ -524,6 +525,10 @@ utils.tile_and_move_images(stride=1200,
 # CREATE DIFFERENT DATA SUBSETS
 # ======================================================================================================================
 
+val_dataset = "Z:/Public/Jonas/Data/ESWW006/ImagesNadir/patches_annotation/all_annotations"
+
+# (1) Single tile, single soil, no composites
+
 full_dir = "C:/Users/anjonas/PycharmProjects/SegVeg/data/combined_patches"
 all_fakes = glob.glob(f'{full_dir}/*/images/*_fake_[0-9].png')
 all_composites = glob.glob(f'{full_dir}/*/images/*_composite_[0-9].png')
@@ -533,27 +538,77 @@ df['id'] = utils.get_identifier(all_fakes)
 # df['soil'] = [re.sub("_fake_[0-9]", "", utils.get_soil_id(x)) for x in all_fakes]
 df2 = df.groupby(['id']).apply(lambda x: x.sample(1, random_state=10)).reset_index(drop=True)
 used3 = df2['name'].tolist()
+
+lst, lst_key = utils.split_dataset(files=used3, split_ratio=1.0)
+reduced_dir = "C:/Users/anjonas/PycharmProjects/SegVeg/data/1tile_1soil_0composite"
+mask_dir = full_dir
+utils.tile_and_move_images(stride=None,
+                           file_list=lst,
+                           key_list=lst_key,
+                           out_dir=reduced_dir,
+                           validation_dataset_dir=val_dataset)
+
+# ======================================================================================================================
+
+# (2) All four tiles, single soil, no composites
+
+df2 = df.groupby(['id']).apply(lambda x: x.sample(1, random_state=10)).reset_index(drop=True)
+used3 = df2['name'].tolist()
 used4 = [re.sub("_3.png", "_4.png", x) for x in used3]
 used1 = [re.sub("_3.png", "_1.png", x) for x in used3]
 used2 = [re.sub("_3.png", "_2.png", x) for x in used3]
 used = used1 + used2 + used3 + used4
 
-# WITHOUT COMPOSITES
-lst, lst_key = utils.split_dataset(files=used, split_ratio=0.8)
-reduced_dir = "C:/Users/anjonas/PycharmProjects/SegVeg/data/reduced_nocomposite"
-utils.tile_and_move_images(stride=None,
-                           file_list=lst,
-                           key_list=lst_key,
-                           out_dir=reduced_dir)
-
 # WITH COMPOSITES
-files = used + all_composites
-lst, lst_key = utils.split_dataset(files=files, split_ratio=0.8)
-reduced_dir = "C:/Users/anjonas/PycharmProjects/SegVeg/data/reduced_withcomposite"
+lst, lst_key = utils.split_dataset(files=used, split_ratio=1.0)
+reduced_dir = "C:/Users/anjonas/PycharmProjects/SegVeg/data/4tile_1soil_0composite"
 utils.tile_and_move_images(stride=None,
                            file_list=lst,
                            key_list=lst_key,
-                           out_dir=reduced_dir)
+                           out_dir=reduced_dir,
+                           validation_dataset_dir=val_dataset)
+
+# ======================================================================================================================
+
+# (3) All four tiles, n soils, no composites
+
+df2 = df.groupby(['id']).apply(lambda x: x.sample(6, random_state=10)).reset_index(drop=True)
+selected = df2['name'].tolist()
+all_patches = []
+for s in selected:
+    trunc = s[:len(s)-5]
+    for i in range(1, 5):
+        all_patches.append("".join([trunc, str(i), ".png"]))
+
+lst, lst_key = utils.split_dataset(files=all_patches, split_ratio=1.0)
+reduced_dir = "C:/Users/anjonas/PycharmProjects/SegVeg/data/4tile_6soil_0composite"
+utils.tile_and_move_images(stride=None,
+                           file_list=lst,
+                           key_list=lst_key,
+                           out_dir=reduced_dir,
+                           validation_dataset_dir=val_dataset)
+
+# ======================================================================================================================
+
+# (4) All four tiles, n soils, with composites
+
+df2 = df.groupby(['id']).apply(lambda x: x.sample(3, random_state=10)).reset_index(drop=True)
+selected = df2['name'].tolist()
+all_patches = []
+for s in selected:
+    trunc = s[:len(s)-5]
+    for i in range(1, 5):
+        all_patches.append("".join([trunc, str(i), ".png"]))
+
+used = all_patches + all_composites
+
+lst, lst_key = utils.split_dataset(files=used, split_ratio=1.0)
+reduced_dir = "C:/Users/anjonas/PycharmProjects/SegVeg/data/4tile_3soil_1composite"
+utils.tile_and_move_images(stride=None,
+                           file_list=lst,
+                           key_list=lst_key,
+                           out_dir=reduced_dir,
+                           validation_dataset_dir=val_dataset)
 
 # ======================================================================================================================
 # TRAIN THE SEGMENTATION MODEL !!

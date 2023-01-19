@@ -1,47 +1,20 @@
-import torch
-import flash
-from flash.core.data.utils import download_data
-from flash.image import SemanticSegmentation, SemanticSegmentationData
 
-# 1. Create the DataModule
-# The data was generated with the  CARLA self-driving simulator as part of the Kaggle Lyft Udacity Challenge.
-# More info here: https://www.kaggle.com/kumaresanmanickavelu/lyft-udacity-challenge
-download_data(
-    "https://github.com/ongchinkiat/LyftPerceptionChallenge/releases/download/v0.1/carla-capture-20180513A.zip",
-    "./data",
-)
+import imageio
 
-datamodule = SemanticSegmentationData.from_folders(
-    train_folder="data/CameraRGB",
-    train_target_folder="data/CameraSeg",
-    val_split=0.1,
-    transform_kwargs=dict(image_size=(256, 256)),
-    num_classes=21,
-    batch_size=4,
-)
+import matplotlib
+matplotlib.use('Qt5Agg')
+import matplotlib.pyplot as plt
 
-# 2. Build the task
-model = SemanticSegmentation(
-    backbone="mobilenetv3_large_100",
-    head="fpn",
-    num_classes=datamodule.num_classes,
-)
+image = imageio.imread("Z:/Public/Jonas/Data/ESWW006/ImagesNadir/patches_annotation/all_annotations/images/20220530_Cam_ESWW0060037_Cnp_1_3.png")
+plt.imshow(image)
 
-# 3. Create the trainer and finetune the model
-trainer = flash.Trainer(max_epochs=3, gpus=torch.cuda.device_count())
-trainer.finetune(model, datamodule=datamodule, strategy="freeze")
+full_img = imageio.imread("Z:/Public/Jonas/Data/ESWW006/ImagesNadir/2022_05_30/JPEG/20220530_Cam_ESWW0060037_Cnp_1.JPG")
+dings = full_img[0:4000, 2440:6440]
+dings = dings[1400:2600, 0:1200]
 
-# 4. Segment a few images!
-datamodule = SemanticSegmentationData.from_files(
-    predict_files=[
-        "data/CameraRGB/F61-1.png",
-        "data/CameraRGB/F62-1.png",
-        "data/CameraRGB/F63-1.png",
-    ],
-    batch_size=3,
-)
-predictions = trainer.predict(model, datamodule=datamodule)
-print(predictions)
-
-# 5. Save the model!
-trainer.save_checkpoint("semantic_segmentation_model.pt")
+fig, axs = plt.subplots(1, 2, sharex=True, sharey=True)
+axs[0].imshow(image)
+axs[0].set_title('img')
+axs[1].imshow(dings)
+axs[1].set_title('orig_mask')
+plt.show(block=True)

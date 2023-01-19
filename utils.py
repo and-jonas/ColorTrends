@@ -7,11 +7,15 @@ import os
 import shutil
 import imageio
 from pathlib import Path
+import glob
+import sys
+from scipy.stats import kurtosis, skew
 
 
 def random_patch(img, size, frame, random_patch=True):
     """
     Randomly select a patch from a defined central region of the image
+    :param random_patch: boolean, whether to select or not a random patch
     :param img: the RGB image to select the patch from
     :param size: the size of the patch in pixels
     :param frame: the size of the edge to be excluded; a tuple of four integers
@@ -343,7 +347,7 @@ def get_hist(img, normalize):
 # =====
 
 # vegetation index
-def calculate_Index(img):
+def calculate_index(img):
     # Calculate vegetation indices: ExR, ExG, TGI
     R, G, B = cv2.split(img)
 
@@ -356,6 +360,55 @@ def calculate_Index(img):
     ExG = np.array(2.0 * g - r - b, dtype=np.float32)
 
     return ExG
+
+
+def color_index_transformation(image):
+    R, G, B = cv2.split(image)
+    normalizer = np.array(R.astype("float32") + G.astype("float32") + B.astype("float32"))
+    normalizer[normalizer == 0] = 1  # avoid division by 0
+    r, g, b = (R, G, B) / normalizer
+    # Green Leaf Index
+    GLI = np.array((2 * g - r - b) / (2 * g + r + b), dtype=np.float32)
+    # Excess Green Index
+    ExG = np.array(2.0 * g - r - b, dtype=np.float32)
+    # Excess Red Index
+    ExR = np.array(1.3 * r - g)
+    # Normalized Difference Index
+    NDI = 128 * (((g - r) / (g + r)) + 1)
+    # Excess Green minus Excess red Index
+    ExGR = (2 * g - (r + b)) - (1.3 * r - g)
+    # Normalized Green Red Difference Index
+    NGRDI = np.array((g - r) / (g + r), dtype=np.float32)
+    # Triangular greenness index
+    lambda_R = 670
+    lambda_G = 550
+    lambda_B = 480
+    TGI = -0.5 * ((lambda_R - lambda_B) * (r - g) - (lambda_R - lambda_G) * (r - b))
+    # Vegetation Index
+    r[r == 0] = 0.00001  # Avoid division by zero
+    b[b == 0] = 0.00001  # Avoid division by zero
+    VEG = g / ((r ** 0.667) * (b ** 0.333))
+
+    desc = [GLI, ExG, NDI, ExGR, NGRDI, TGI, VEG]
+    desc_names = ['GLI', 'ExG', 'NDI', 'ExGR', 'NGRDI', 'TGI', 'VEG']
+
+    return desc, desc_names
+
+
+def index_distribution(image, image_name, mask):
+    px_roi = image[mask == 255].tolist()
+    mn = np.mean(px_roi)
+    md = np.median(px_roi)
+    kt = kurtosis(px_roi)
+    sk = skew(px_roi)
+    p75, p251 = np.percentile(px_roi, [75, 25])
+    iqr = p75 - p251
+    p98, p02 = np.percentile(px_roi, [98, 2])
+    ipr = p98 - p02
+    std = np.std(px_roi)
+    stat_names = ["mean", "median", "kurtosis", "skewness", "intqrange", "intprange", "stddev"]
+    stat_names = [image_name + "_" + n for n in stat_names]
+    return [mn, md, kt, sk, iqr, ipr, std], stat_names
 
 # =====
 
@@ -481,7 +534,7 @@ def get_plot_id(file_names):
     return plot_ids
 
 
-def tile_and_move_images(file_list, key_list, out_dir, stride=None):
+def tile_and_move_images(file_list, key_list, out_dir, stride=None, validation_dataset_dir=None):
 
     # create necessary directories if needed
     Path(f'{out_dir}/train/images').mkdir(exist_ok=True, parents=True)
@@ -490,13 +543,17 @@ def tile_and_move_images(file_list, key_list, out_dir, stride=None):
     Path(f'{out_dir}/validation/masks').mkdir(exist_ok=True, parents=True)
 
     # copy and move files
+    print("copying training data ...")
     for ele, key in zip(file_list, key_list):
         name = os.path.basename(ele)
-        img_id = name.split("_")[:2]
-        img_id = "_".join(img_id)
+        # img_id = name.split("_")[:2]
+        # img_id = "_".join(img_id)
         patch_id = name.split("_")[len(name.split("_")) - 2]
         destination = f'{out_dir}/{key}/images/{name}'
-        mask_source = f'Z:/Public/Jonas/Data/ESWW006/Images_trainset/Output/annotations_manual/masks/{img_id}.png'
+        mask_source = glob.glob(f'C:/Users/anjonas/PycharmProjects/SegVeg/data/combined_patches/*/masks/{name}')
+        if not len(mask_source) == 1:
+            sys.exit("Found more than one mask!")
+        mask_source = mask_source[0]
         mask_destination = f'{out_dir}/{key}/masks/{name}'
         if stride is not None:
             img = imageio.imread(ele)
@@ -513,6 +570,11 @@ def tile_and_move_images(file_list, key_list, out_dir, stride=None):
             shutil.copy(ele, destination)
             destination = f'{out_dir}/{key}/masks/{name}'
             shutil.copy(mask_source, destination)
+    if validation_dataset_dir is not None:
+        print("copying external validation data ...")
+        shutil.rmtree(f'{out_dir}/validation/')  # DELETE NEWLY CREATED (JUST ABOVE)
+        shutil.copytree(validation_dataset_dir, f'{out_dir}/validation/')  # COPY ACTUAL VALIDATION DATA
+        shutil.rmtree(f'{out_dir}/validation/masks/8bit')  # NOT NEEDED, only for visualization
 
 
 def split_dataset(files, split_ratio):

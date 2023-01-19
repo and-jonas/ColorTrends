@@ -97,18 +97,24 @@ for path in mask_paths:
 # --> resize to 700*700 px
 # ======================================================================================================================
 
+base = "Z:/Public/Jonas/Data/ESWW006/ImagesNadir/patches_annotation_spikes/INT_DIF"
 # dir_img = "P:/Public/Jonas/003_ESWW/ColorTrends/train_img_selection/patches"
 # dir_img = "P:/Public/Jonas/003_ESWW/ColorTrends/train_img_selection/patches_1200"
-dir_img = "Z:/Public/Jonas/Data/ESWW006/ImagesNadir/patches_annotation_spikes/STG_DIR/JPEGImages"
+dir_img = f'{base}/JPEGImages'
 # dir_img = "P:/Public/Jonas/003_ESWW/ColorTrends/train_img_selection/patches_soil_in_focus"
 # dir_mask = "P:/Public/Jonas/003_ESWW/ColorTrends/train_img_selection/annotations/annotations_1200"
 # dir_mask = "P:/Public/Jonas/003_ESWW/ColorTrends/train_img_selection/annotations/annotations_20220406"
-dir_mask = "Z:/Public/Jonas/Data/ESWW006/ImagesNadir/patches_annotation_spikes/STG_DIR/SegmentationClass"
+dir_mask = f'{base}/SegmentationClass'
 # dir_mask = "P:/Public/Jonas/003_ESWW/ColorTrends/train_img_selection/annotations/annotations_20220923"
 dir_to = "P:/Public/Jonas/003_ESWW/ColorTrends/train_img_selection/annotations/all_annotations"
 
 # mask_paths = glob.glob(f'{dir_mask}/SegmentationClass/*.png')
 mask_paths = glob.glob(f'{dir_mask}/*.png')
+# only process edited ones
+if Path(f'{base}/edited.txt').exists():
+    edited_list = pd.read_csv(f'{base}/edited.txt', header=None).iloc[:, 0].tolist()
+    mask_paths = [ele for ele in mask_paths if os.path.basename(ele) in edited_list]
+
 for path in mask_paths:
 
     # set names

@@ -1,4 +1,29 @@
 
+
+import kornia as K
+import PIL
+import torchvision.transforms as transforms
+import matplotlib
+matplotlib.use('Qt5Agg')
+import matplotlib.pyplot as plt
+import numpy as np
+
+img = PIL.Image.open("Z:/Public/Jonas/Data/FPWW002/wheat_head_annotations/year_split/train/images/IMG_0440.png")
+
+transform = transforms.ToTensor()
+
+img_ = transform(img)
+
+tr = K.augmentation.ColorJiggle(0, 0, 0, 0)
+
+out = tr(img_).numpy()
+
+out = np.moveaxis(out[0, :, :, :], 2, 0)
+out = np.moveaxis(out, 2, 0)
+
+
+plt.imshow(out)
+
 # import csv
 # import sys
 # with open('temp.csv', 'wt') as f:
