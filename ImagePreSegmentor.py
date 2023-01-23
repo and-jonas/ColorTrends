@@ -211,8 +211,15 @@ class ImagePostSegmentor:
         files = []
         for d in self.dirs_to_process:
             files.extend(glob.glob(f'{d}/*.{self.image_type}'))
+
         # removes all Reference images
         files = [f for f in files if "Ref" not in f]
+
+        # removes all files already processed
+        processed = glob.glob(f"{self.path_stats}/*.csv")
+        processed = [os.path.basename(p).replace(".csv", ".JPG") for p in processed]
+        files = [f for f in files if os.path.basename(f) not in processed]
+
         return files
 
     def segment_image(self, img):
@@ -306,8 +313,8 @@ class ImagePostSegmentor:
             ear_col_mask = copy.copy(mask)
             ear_col_mask[np.where(ear_mask == 0)] = (0, 0, 0)
 
-            veg_col_mask_no_ear = copy.copy(veg_col_mask)
-            veg_col_mask_no_ear[np.where(ear_mask == 255)] = (0, 0, 0)
+            source_col_mask = copy.copy(veg_col_mask)
+            source_col_mask[np.where(ear_mask == 255)] = (0, 0, 0)
 
             # remove background and/or objects - original patches
             veg_image = copy.copy(patch)
@@ -322,7 +329,7 @@ class ImagePostSegmentor:
             imageio.imwrite(mask_name, mask)
             imageio.imwrite(self.patch_mask_veg / png_name, veg_col_mask)
             imageio.imwrite(self.patch_mask_ear / png_name, ear_col_mask)
-            imageio.imwrite(self.patch_mask_veg_no_ear / png_name, veg_col_mask_no_ear)
+            imageio.imwrite(self.patch_mask_veg_no_ear / png_name, source_col_mask)
             if self.save_masked_images:
                 imageio.imwrite(self.patch_img_veg / png_name, veg_image)
                 imageio.imwrite(self.patch_img_ear / png_name, ear_image)
@@ -354,9 +361,9 @@ class ImagePostSegmentor:
             veg_cover = len(np.where(veg_mask == 255)[0])/(4000*4000)
             ear_cover = len(np.where(ear_mask == 255)[0])/(4000*4000)
             veg_cover_2m = len(np.where(veg_mask_two_mod == 255)[0])/(4000*4000)
-            veg_cover_no_ear = len(np.where(veg_no_ear_mask == 255)[0])/(4000*4000)
+            source_cover = len(np.where(veg_no_ear_mask == 255)[0])/(4000*4000)
             cover_stat_names = ["veg_cover", "ear_cover", "veg_cover_2m", "veg_cover_no_ear"]
-            dfa[cover_stat_names] = [[veg_cover, ear_cover, veg_cover_2m, veg_cover_no_ear]]
+            dfa[cover_stat_names] = [[veg_cover, ear_cover, veg_cover_2m, source_cover]]
 
             # cover within fraction per color
             ear_green = len(np.where(ear_col_mask[:, :, 1] == 100)[0])/len(np.where(ear_mask == 255)[0])
@@ -365,10 +372,13 @@ class ImagePostSegmentor:
             veg_green = len(np.where(veg_col_mask[:, :, 1] == 100)[0])/len(np.where(veg_mask == 255)[0])
             veg_chlr = len(np.where(veg_col_mask[:, :, 1] == 204)[0])/len(np.where(veg_mask == 255)[0])
             veg_necr = len(np.where(veg_col_mask[:, :, 1] == 61)[0])/len(np.where(veg_mask == 255)[0])
-            status_stat_names = ["ear_green", "ear_chlr", "ear_necr", "veg_green", "veg_chlr", "veg_necr"]
-            dfa[status_stat_names] = [[ear_green, ear_chlr, ear_necr, veg_green, veg_chlr, veg_necr]]
-            dfa.to_csv(self.path_stats / csv_name, index=False)
-            result.put(file)
+            source_green = len(np.where(source_col_mask[:, :, 1] == 100)[0])/len(np.where(veg_mask == 255)[0])
+            source_chlr = len(np.where(source_col_mask[:, :, 1] == 204)[0])/len(np.where(veg_mask == 255)[0])
+            source_necr = len(np.where(source_col_mask[:, :, 1] == 61)[0])/len(np.where(veg_mask == 255)[0])
+            status_stat_names = ["ear_green", "ear_chlr", "ear_necr", "veg_green", "veg_chlr", "veg_necr",
+                                 "source_green", "source_chlr", "source_necr"]
+            dfa[status_stat_names] = [[ear_green, ear_chlr, ear_necr, veg_green, veg_chlr, veg_necr,
+                                       source_green, source_chlr, source_necr]]
 
     def process_images(self):
 
@@ -393,7 +403,7 @@ class ImagePostSegmentor:
                 jobs.put(job)
 
             # Start processes
-            for w in range(multiprocessing.cpu_count() - 11):
+            for w in range(multiprocessing.cpu_count() - 2):
                 p = Process(target=self.process_image,
                             args=(jobs, results))
                 p.daemon = True
@@ -401,7 +411,7 @@ class ImagePostSegmentor:
                 processes.append(p)
                 jobs.put('STOP')
 
-            print(str(len(files)) + " jobs started, " + str(multiprocessing.cpu_count() - 11) + " workers")
+            print(str(len(files)) + " jobs started, " + str(multiprocessing.cpu_count() - 2) + " workers")
 
             # Get results and increment counter along with it
             while count < max_jobs:
