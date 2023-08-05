@@ -22,9 +22,9 @@ import copy
 import multiprocessing
 from multiprocessing import Manager, Process
 
-import matplotlib
-matplotlib.use('Qt5Agg')
-import matplotlib.pyplot as plt
+# import matplotlib
+# matplotlib.use('Qt5Agg')
+# import matplotlib.pyplot as plt
 
 from utils_smoothing import smooth_edge_aware
 

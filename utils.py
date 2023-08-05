@@ -12,7 +12,7 @@ import sys
 from scipy.stats import kurtosis, skew
 
 
-def random_patch(img, size, frame, random_patch=True):
+def random_patch(img, size, frame, random_patch=True, color_checker=True):
     """
     Randomly select a patch from a defined central region of the image
     :param random_patch: boolean, whether to select or not a random patch
@@ -27,14 +27,15 @@ def random_patch(img, size, frame, random_patch=True):
         img = np.rot90(img)
 
     # detect color checker, and rotate by 180 degrees if necessary
-    try:
-        dataframe1, start, space = pcv.transform.find_color_card(rgb_img=img, background='light')
-    except RuntimeError:
-        dataframe1, start, space = pcv.transform.find_color_card(rgb_img=img, background='dark')
+    if color_checker:
+        try:
+            dataframe1, start, space = pcv.transform.find_color_card(rgb_img=img, background='light')
+        except RuntimeError:
+            dataframe1, start, space = pcv.transform.find_color_card(rgb_img=img, background='dark')
 
-    if start[1] < 2000:
-        print('rotating 180')
-        img = np.rot90(np.rot90(img))
+        if start[1] < 2000:
+            print('rotating 180')
+            img = np.rot90(np.rot90(img))
 
     # remove edges
     left, upper, right, lower = frame
@@ -47,7 +48,7 @@ def random_patch(img, size, frame, random_patch=True):
         y2 = y1 + size
         x2 = x1 + size
         img_patch = img_central[y1:y2, x1:x2, :]
-        coords = (x1, x2, y1, y2)
+        coords = (x1 + left, x2 + left, y1 + upper, y2 + upper)
 
     else:
         img_patch = img_central

@@ -75,94 +75,95 @@ import cv2
 # # (3) train random forest classifier
 # # ======================================================================================================================
 #
-# workdir = 'Z:/Public/Jonas/Data/ESWW006/ImagesNadir/patches_annotation_vegcol'
-#
-# train_data = pd.read_csv(f'{workdir}/training_data.csv')
-#
-# # OPTIONAL: sample an equal number of rows per class for training
-# # THIS INCREASES THE CROSS-VALIDATED CLASS-BALANCED ACCURACY FROM 0.943 to 0.970
-# n_brown = train_data.groupby('response').count().iloc[0, 0]
-# n_green = train_data.groupby('response').count().iloc[1, 0]
-# n_yellow = train_data.groupby('response').count().iloc[2, 0]
-#
-# n_min = min(n_brown, n_green, n_yellow)
-# train_data = train_data.groupby(['response']).apply(lambda grp: grp.sample(n=n_min))
-#
-# n_estimators = [int(x) for x in np.linspace(start=20, stop=200, num=10)]
-# # Number of features to consider at every split
-# max_features = ['auto', 'sqrt']
-# # Maximum number of levels in tree
-# max_depth = [int(x) for x in np.linspace(10, 110, num=11)]
-# max_depth.append(None)
-# # Minimum number of samples required to split a node
-# min_samples_split = [2, 5, 10]
-# # Minimum number of samples required at each leaf node
-# min_samples_leaf = [1, 2, 4, 8]
-# # Method of selecting samples for training each tree
-# bootstrap = [True, False]  # Create the random grid
-# random_grid = {'n_estimators': n_estimators,
-#                'max_features': max_features,
-#                'max_depth': max_depth,
-#                'min_samples_split': min_samples_split,
-#                'min_samples_leaf': min_samples_leaf,
-#                'bootstrap': bootstrap}
-#
-# # Use the random grid to search for best hyperparameters
-# # First create the base model to tune
-# rf = RandomForestClassifier()
-# # Random search of parameters, using 3 fold cross validation,
-# # search across 100 different combinations, and use all available cores
-# rf_random = RandomizedSearchCV(estimator=rf,
-#                                param_distributions=random_grid,
-#                                n_iter=100, cv=10,
-#                                verbose=3, random_state=42,
-#                                n_jobs=-1)  # Fit the random search model
-#
-# # predictor matrix
-# X = np.asarray(train_data)[:, 0:21]
-# # response vector
-# y = np.asarray(train_data)[:, 21]
-#
-# model = rf_random.fit(X, y)
-# rf_random.best_params_
-# best_random = rf_random.best_estimator_
-#
-# # result is {'n_estimators': 160, 'min_samples_split': 5, 'min_samples_leaf': 2, 'max_features': 'auto', 'max_depth': 20, 'bootstrap': False}
-#
-# param_grid = {
-#     'bootstrap': [False],
-#     'max_depth': [16, 18, 20, 22, 24],
-#     'max_features': ['auto'],
-#     'min_samples_leaf': [1, 2, 3, 4],
-#     'min_samples_split': [3, 5, 7, 9],
-#     'n_estimators': [150, 160, 170]
-# }
-# # Create a based model
-# rf = RandomForestClassifier()  # Instantiate the grid search model
-# grid_search = GridSearchCV(estimator=rf, param_grid=param_grid,
-#                            cv=10, n_jobs=-1, verbose=3)
-#
-# # Fit the grid search to the data
-# grid_search.fit(X, y)
-# grid_search.best_params_
-#
-# # specify model hyper-parameters
-# clf = RandomForestClassifier(
-#     max_depth=20,  # maximum depth of 95 decision nodes for each decision tree
-#     max_features='auto',  # maximum of 6 features (channels) are considered when forming a decision node
-#     min_samples_leaf=2,  # minimum of 6 samples needed to form a final leaf
-#     min_samples_split=5,  # minimum 4 samples needed to create a decision node
-#     n_estimators=160,  # maximum of 55 decision trees
-#     bootstrap=False,  # don't reuse samples
-#     random_state=1,
-#     n_jobs=-1
-# )
-#
-# # fit random forest
-# model = clf.fit(X, y)
-# score = model.score(X, y)  # not cross-validated
-# scores = cross_val_score(clf, X, y, cv=10, scoring='balanced_accuracy')
-# score = scores.mean()
+workdir = 'Z:/Public/Jonas/Data/ESWW006/ImagesNadir/patches_annotation_vegcol'
+
+train_data = pd.read_csv(f'{workdir}/training_data.csv')
+
+# OPTIONAL: sample an equal number of rows per class for training
+# THIS INCREASES THE CROSS-VALIDATED CLASS-BALANCED ACCURACY FROM 0.943 to 0.970
+n_brown = train_data.groupby('response').count().iloc[0, 0]
+n_green = train_data.groupby('response').count().iloc[1, 0]
+n_yellow = train_data.groupby('response').count().iloc[2, 0]
+
+n_min = min(n_brown, n_green, n_yellow)
+train_data = train_data.groupby(['response']).apply(lambda grp: grp.sample(n=n_min))
+
+n_estimators = [int(x) for x in np.linspace(start=20, stop=200, num=10)]
+# Number of features to consider at every split
+max_features = ['auto', 'sqrt']
+# Maximum number of levels in tree
+max_depth = [int(x) for x in np.linspace(10, 110, num=11)]
+max_depth.append(None)
+# Minimum number of samples required to split a node
+min_samples_split = [2, 5, 10]
+# Minimum number of samples required at each leaf node
+min_samples_leaf = [1, 2, 4, 8]
+# Method of selecting samples for training each tree
+bootstrap = [True, False]  # Create the random grid
+random_grid = {'n_estimators': n_estimators,
+               'max_features': max_features,
+               'max_depth': max_depth,
+               'min_samples_split': min_samples_split,
+               'min_samples_leaf': min_samples_leaf,
+               'bootstrap': bootstrap}
+
+# Use the random grid to search for best hyperparameters
+# First create the base model to tune
+rf = RandomForestClassifier()
+# Random search of parameters, using 3 fold cross validation,
+# search across 100 different combinations, and use all available cores
+rf_random = RandomizedSearchCV(estimator=rf,
+                               param_distributions=random_grid,
+                               n_iter=100, cv=10,
+                               verbose=3, random_state=42,
+                               n_jobs=-1)  # Fit the random search model
+
+# predictor matrix
+X = np.asarray(train_data)[:, 0:21]
+# response vector
+y = np.asarray(train_data)[:, 21]
+
+model = rf_random.fit(X, y)
+rf_random.best_params_
+best_random = rf_random.best_estimator_
+
+# result is {'n_estimators': 160, 'min_samples_split': 5, 'min_samples_leaf': 2, 'max_features': 'auto', 'max_depth': 20, 'bootstrap': False}
+
+param_grid = {
+    'bootstrap': [False],
+    'max_depth': [16, 18, 20, 22, 24],
+    'max_features': ['auto'],
+    'min_samples_leaf': [1, 2, 3, 4],
+    'min_samples_split': [3, 5, 7, 9],
+    'n_estimators': [150, 160, 170]
+}
+# Create a based model
+rf = RandomForestClassifier()  # Instantiate the grid search model
+grid_search = GridSearchCV(estimator=rf, param_grid=param_grid,
+                           cv=10, n_jobs=-1, verbose=3)
+
+# Fit the grid search to the data
+grid_search.fit(X, y)
+grid_search.best_params_
+
+# specify model hyper-parameters
+clf = RandomForestClassifier(
+    max_depth=20,  # maximum depth of 95 decision nodes for each decision tree
+    max_features='auto',  # maximum of 6 features (channels) are considered when forming a decision node
+    min_samples_leaf=2,  # minimum of 6 samples needed to form a final leaf
+    min_samples_split=5,  # minimum 4 samples needed to create a decision node
+    n_estimators=160,  # maximum of 55 decision trees
+    bootstrap=False,  # don't reuse samples
+    random_state=1,
+    n_jobs=-1
+)
+
+# fit random forest
+model = clf.fit(X, y)
+score = model.score(X, y)  # not cross-validated
+scores = cross_val_score(model, X, y, cv=10, scoring='balanced_accuracy')
+score = scores.mean()
+score = scores.std()
 #
 # # save model
 # path = f'{workdir}/Output/Models'

@@ -213,10 +213,10 @@ class ImagePostSegmentor:
         # removes all Reference images
         files = [f for f in files if "Ref" not in f]
 
-        # removes all files already processed
-        processed = glob.glob(f"{self.path_stats}/*.csv")
-        processed = [os.path.basename(p).replace(".csv", ".JPG") for p in processed]
-        files = [f for f in files if os.path.basename(f) not in processed]
+        # # removes all files already processed
+        # processed = glob.glob(f"{self.path_stats}/*.csv")
+        # processed = [os.path.basename(p).replace(".csv", ".JPG") for p in processed]
+        # files = [f for f in files if os.path.basename(f) not in processed]
 
         return files
 
@@ -267,6 +267,7 @@ class ImagePostSegmentor:
             base_name = os.path.basename(file)
             stem_name = Path(file).stem
             png_name = base_name.replace("." + self.image_type, ".png")
+            csv_name = base_name.replace("." + self.image_type, ".csv")
             img = Image.open(file)
             pix = np.array(img)
 
@@ -374,5 +375,5 @@ class ImagePostSegmentor:
                                  "source_green", "source_chlr", "source_necr"]
             dfa[status_stat_names] = [[ear_green, ear_chlr, ear_necr, veg_green, veg_chlr, veg_necr,
                                        source_green, source_chlr, source_necr]]
-
+            dfa.to_csv(self.path_stats / csv_name, index=False)
 

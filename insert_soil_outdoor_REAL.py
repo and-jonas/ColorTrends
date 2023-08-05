@@ -535,11 +535,12 @@ all_composites = glob.glob(f'{full_dir}/*/images/*_composite_[0-9].png')
 
 df = pd.DataFrame({'name': all_fakes})
 df['id'] = utils.get_identifier(all_fakes)
+df = df.iloc[::4, :]
 # df['soil'] = [re.sub("_fake_[0-9]", "", utils.get_soil_id(x)) for x in all_fakes]
 df2 = df.groupby(['id']).apply(lambda x: x.sample(1, random_state=10)).reset_index(drop=True)
-used3 = df2['name'].tolist()
+used1 = df2['name'].tolist()
 
-lst, lst_key = utils.split_dataset(files=used3, split_ratio=1.0)
+lst, lst_key = utils.split_dataset(files=used1, split_ratio=1.0)
 reduced_dir = "C:/Users/anjonas/PycharmProjects/SegVeg/data/1tile_1soil_0composite"
 mask_dir = full_dir
 utils.tile_and_move_images(stride=None,
@@ -553,11 +554,11 @@ utils.tile_and_move_images(stride=None,
 # (2) All four tiles, single soil, no composites
 
 df2 = df.groupby(['id']).apply(lambda x: x.sample(1, random_state=10)).reset_index(drop=True)
-used3 = df2['name'].tolist()
-used4 = [re.sub("_3.png", "_4.png", x) for x in used3]
-used1 = [re.sub("_3.png", "_1.png", x) for x in used3]
-used2 = [re.sub("_3.png", "_2.png", x) for x in used3]
-used = used1 + used2 + used3 + used4
+used1 = df2['name'].tolist()
+used4 = [re.sub("_1.png", "_4.png", x) for x in used1]
+used3 = [re.sub("_1.png", "_3.png", x) for x in used1]
+used2 = [re.sub("_1.png", "_2.png", x) for x in used1]
+used = used3 + used2 + used1 + used4
 
 # WITH COMPOSITES
 lst, lst_key = utils.split_dataset(files=used, split_ratio=1.0)
@@ -572,7 +573,7 @@ utils.tile_and_move_images(stride=None,
 
 # (3) All four tiles, n soils, no composites
 
-df2 = df.groupby(['id']).apply(lambda x: x.sample(6, random_state=10)).reset_index(drop=True)
+df2 = df.groupby(['id']).apply(lambda x: x.sample(1, random_state=10)).reset_index(drop=True)
 selected = df2['name'].tolist()
 all_patches = []
 for s in selected:
@@ -581,7 +582,7 @@ for s in selected:
         all_patches.append("".join([trunc, str(i), ".png"]))
 
 lst, lst_key = utils.split_dataset(files=all_patches, split_ratio=1.0)
-reduced_dir = "C:/Users/anjonas/PycharmProjects/SegVeg/data/4tile_6soil_0composite"
+reduced_dir = "C:/Users/anjonas/PycharmProjects/SegVeg/data/4tile_1soil_0composite"
 utils.tile_and_move_images(stride=None,
                            file_list=lst,
                            key_list=lst_key,
@@ -611,48 +612,87 @@ utils.tile_and_move_images(stride=None,
                            validation_dataset_dir=val_dataset)
 
 # ======================================================================================================================
+
+# raw composites
+
+directory = "Z:/Public/Jonas/Data/ESWW006/images_trainset/Output/synthetic_images"
+dir_masks = "Z:/Public/Jonas/Data/ESWW006/images_trainset/Output/annotations_manual/masks"
+images = glob.glob(f'{directory}/*/*.png')
+
+out_dir = "C:/Users/anjonas/PycharmProjects/SegVeg/data"
+
+images_done = glob.glob(f'{out_dir}/raw_composite/train/images/*.png')
+
+# list all unique images
+image_id = []
+for im in images:
+    base_name = os.path.basename(im).split("_")
+    base_name = "_".join(base_name[:2])
+    image_id.append(base_name)
+image_id = np.unique(image_id).tolist()
+
+# list all unique images already processed
+image_id_done = []
+for im in images_done:
+    base_name = os.path.basename(im).split("_")
+    base_name = "_".join(base_name[:2])
+    image_id_done.append(base_name)
+image_id_done = np.unique(image_id_done).tolist()
+
+# keep only non-processed ones
+image_id = [im for im in image_id if im not in image_id_done]
+
+for im in image_id:
+    all_ims = glob.glob(f'{directory}/*/{im}*.png')
+    # all_ims = random.sample(all_ims, k=1)
+    for i in all_ims:
+        img = imageio.imread(i)
+        img_name = os.path.basename(i)
+        mask = imageio.imread(f'{dir_masks}/{im}.png')
+        # binarize mask
+        # mask = utils.binarize_mask(mask)
+        tiles = utils.image_tiler(img, stride=1200)
+        mask_tiles = utils.image_tiler(mask, stride=1200)
+        for j in range(len(tiles)):
+            out_name = img_name.replace(".png", f"_{j+1}.png")
+            imageio.imwrite(f"{out_dir}/raw_composite/train/images/{out_name}", tiles[j])
+            imageio.imwrite(f"{out_dir}/raw_composite/train/masks/{out_name}", mask_tiles[j])
+
+# ======================================================================================================================
 # TRAIN THE SEGMENTATION MODEL !!
 # ======================================================================================================================
 #
 # ======================================================================================================================
-# # for direct evaluation
-#
-# directory = "Z:/Public/Jonas/Data/ESWW006/images_trainset/Output/synthetic_images"
-# dir_masks = "Z:/Public/Jonas/Data/ESWW006/images_trainset/Output/annotations_manual/all"
-# images = glob.glob(f'{directory}/*.png')
-#
-# out_dir = "C:/Users/anjonas/PycharmProjects/SegVeg/data"
-#
-# image_id = []
-# for im in images:
-#     base_name = os.path.basename(im).split("_")
-#     base_name = "_".join(base_name[:2])
-#     image_id.append(base_name)
-# image_id = np.unique(image_id).tolist()
-#
-# train = random.sample(image_id, k=61)
-# test_val = [item for item in image_id if item not in train]
-# test = random.sample(test_val, k=10)
-# val = [item for item in test_val if item not in test]
-#
-# for im in val:
-#     all_ims = glob.glob(f'{directory}/{im}*.png')
-#     for i in all_ims:
-#         img = imageio.imread(i)
-#         img_name = os.path.basename(i)
-#         mask = imageio.imread(f'{dir_masks}/{im}_mask.png')
-#         # binarize mask
-#         mask = utils.binarize_mask(mask)
-#         tiles = utils.image_tiler(img, stride=1200)
-#         mask_tiles = utils.image_tiler(mask, stride=1200)
-#         for j in range(len(tiles)):
-#             # resize to 700x700 pixels
-#             img_patch_resized = cv2.resize(tiles[j], (700, 700), interpolation=cv2.INTER_LINEAR)
-#             mask_patch_resized = cv2.resize(mask_tiles[j], (700, 700), interpolation=cv2.INTER_NEAREST)
-#             out_name = img_name.replace(".png", f"_{j+1}.png")
-#             imageio.imwrite(f"{out_dir}/val/{out_name}", img_patch_resized)
-#             out_name = img_name.replace(".png", f"_{j+1}_mask.png")
-#             imageio.imwrite(f"{out_dir}/val/{out_name}", mask_patch_resized)
+# for direct evaluation
+
+directory = "Z:/Public/Jonas/Data/ESWW006/images_trainset/Output/synthetic_images"
+dir_masks = "Z:/Public/Jonas/Data/ESWW006/images_trainset/Output/annotations_manual/masks"
+images = glob.glob(f'{directory}/*/*.png')
+
+out_dir = "C:/Users/anjonas/PycharmProjects/SegVeg/data"
+
+image_id = []
+for im in images:
+    base_name = os.path.basename(im).split("_")
+    base_name = "_".join(base_name[:2])
+    image_id.append(base_name)
+image_id = np.unique(image_id).tolist()
+
+for im in image_id:
+    all_ims = glob.glob(f'{directory}/*/{im}*.png')
+    for i in all_ims:
+        img = imageio.imread(i)
+        img_name = os.path.basename(i)
+        mask = imageio.imread(f'{dir_masks}/{im}.png')
+        # binarize mask
+        # mask = utils.binarize_mask(mask)
+        tiles = utils.image_tiler(img, stride=1200)
+        mask_tiles = utils.image_tiler(mask, stride=1200)
+        for j in range(len(tiles)):
+            out_name = img_name.replace(".png", f"_{j+1}.png")
+            imageio.imwrite(f"{out_dir}/raw_composite/{out_name}", tiles[j])
+            out_name = img_name.replace(".png", f"_{j+1}_mask.png")
+            imageio.imwrite(f"{out_dir}/raw_composite/{out_name}", mask_tiles[j])
 #
 #
 # # real images

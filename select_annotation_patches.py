@@ -39,7 +39,7 @@ for image in images:
 # Make transforms of annotated patches
 # 1) Patches of size 1750
 # --> sample 4 patches of 1200x1200 px from these patches
-# --> resize each to 1024x1024 px
+# --> resize each to 1200x1200 px
 # ======================================================================================================================
 
 import matplotlib as mpl
